@@ -21,7 +21,7 @@ footer{padding:38px 0;border-top:1px solid var(--line);color:#667085;font-size:1
 <body>
 <header><div class="wrap nav">
   <a class="brand" href="#"><span class="mark">B</span>BZlikely</a>
-  <nav class="links"><a href="#how">How it works</a><a href="#products">Products</a><a href="#publishers">Publishers</a><a href="#contact">Contact</a><a href="#about">About</a></nav>
+  <nav class="links"><a href="#how">How it works</a><a href="#products">Products</a><a href="#publishers">Publishers</a><a href="#publisher-interest">Join</a><a href="#contact">Contact</a><a href="#about">About</a></nav>
   <div class="actions"><a class="btn outline" href="#products">Explore products</a><button class="btn primary" onclick="showModal()">Join as publisher</button></div>
 </div></header>
 <main>
@@ -56,6 +56,20 @@ footer{padding:38px 0;border-top:1px solid var(--line);color:#667085;font-size:1
 </div></section>
 <section id="publishers"><div class="wrap"><div class="section-head"><div class="kicker">For publishers</div><h2>Build with a network that values transparency</h2><p>Our goal is to give publishers clear offer terms, reliable tracking information and understandable payout status.</p></div>
 <div class="features"><article class="feature"><div class="ico">🔎</div><h3>Approved offers</h3><p>Browse only offers that have been authorized for promotion.</p></article><article class="feature"><div class="ico">🔗</div><h3>Unique tracking</h3><p>Publisher-level links connected to partner tracking systems.</p></article><article class="feature"><div class="ico">📊</div><h3>Clear reporting</h3><p>Separate pending, approved, reversed and payable commissions.</p></article></div></div></section>
+
+
+<section id="publisher-interest"><div class="wrap">
+  <div class="section-head"><div class="kicker">Publisher interest</div><h2>Interested in becoming a BZlikely publisher?</h2><p>Share your interest. Publisher accounts and affiliate links are not open yet; this form prepares an email enquiry to our team.</p></div>
+  <div style="max-width:650px;margin:0 auto;border:1px solid var(--line);border-radius:18px;padding:24px;background:white">
+    <form id="interestForm">
+      <label style="display:block;font-weight:700;font-size:14px;margin:12px 0 6px">Your name</label><input id="iname" required placeholder="Full name" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font:inherit">
+      <label style="display:block;font-weight:700;font-size:14px;margin:12px 0 6px">Email address</label><input id="iemail" type="email" required placeholder="you@example.com" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font:inherit">
+      <label style="display:block;font-weight:700;font-size:14px;margin:12px 0 6px">Country</label><input id="icountry" required placeholder="Country" style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font:inherit">
+      <label style="display:block;font-weight:700;font-size:14px;margin:12px 0 6px">Where do you promote products?</label><input id="iplatform" required placeholder="Website, Facebook, Instagram, YouTube, etc." style="width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font:inherit">
+      <button type="submit" class="btn primary" style="width:100%;margin-top:18px">Prepare publisher enquiry email</button>
+    </form><div class="notice">This is an email-based interest form, not a stored registration. Your email app will open with an enquiry draft. Nothing is sent until you send it yourself.</div>
+  </div></div></section>
+<script>document.getElementById('interestForm').addEventListener('submit',function(e){e.preventDefault();const name=document.getElementById('iname').value.trim();const email=document.getElementById('iemail').value.trim();const country=document.getElementById('icountry').value.trim();const platform=document.getElementById('iplatform').value.trim();const body='Publisher interest enquiry\n\nName: '+name+'\nEmail: '+email+'\nCountry: '+country+'\nPromotion platform: '+platform+'\n\nI am interested in learning more about BZlikely publisher registration.';const url='mailto:bzlikelybusiness@gmail.com?subject='+encodeURIComponent('Publisher Interest Enquiry')+'&body='+encodeURIComponent(body);window.location.href=url;});</script>
 
 <section id="contact" class="soft"><div class="wrap">
 <div class="section-head"><div class="kicker">Get in touch</div><h2>Contact BZlikely</h2><p>For brand partnership discussions, publisher questions or general enquiries, email our team.</p></div>
