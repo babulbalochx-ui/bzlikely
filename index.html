@@ -21,7 +21,7 @@ footer{padding:38px 0;border-top:1px solid var(--line);color:#667085;font-size:1
 <body>
 <header><div class="wrap nav">
   <a class="brand" href="#"><span class="mark">B</span>BZlikely</a>
-  <nav class="links"><a href="#how">How it works</a><a href="#products">Products</a><a href="#publishers">Publishers</a><a href="#about">About</a></nav>
+  <nav class="links"><a href="#how">How it works</a><a href="#products">Products</a><a href="#publishers">Publishers</a><a href="#contact">Contact</a><a href="#about">About</a></nav>
   <div class="actions"><a class="btn outline" href="#products">Explore products</a><button class="btn primary" onclick="showModal()">Join as publisher</button></div>
 </div></header>
 <main>
@@ -56,9 +56,18 @@ footer{padding:38px 0;border-top:1px solid var(--line);color:#667085;font-size:1
 </div></section>
 <section id="publishers"><div class="wrap"><div class="section-head"><div class="kicker">For publishers</div><h2>Build with a network that values transparency</h2><p>Our goal is to give publishers clear offer terms, reliable tracking information and understandable payout status.</p></div>
 <div class="features"><article class="feature"><div class="ico">🔎</div><h3>Approved offers</h3><p>Browse only offers that have been authorized for promotion.</p></article><article class="feature"><div class="ico">🔗</div><h3>Unique tracking</h3><p>Publisher-level links connected to partner tracking systems.</p></article><article class="feature"><div class="ico">📊</div><h3>Clear reporting</h3><p>Separate pending, approved, reversed and payable commissions.</p></article></div></div></section>
+
+<section id="contact" class="soft"><div class="wrap">
+<div class="section-head"><div class="kicker">Get in touch</div><h2>Contact BZlikely</h2><p>For brand partnership discussions, publisher questions or general enquiries, email our team.</p></div>
+<div class="features">
+<article class="feature"><div class="ico">🤝</div><h3>Brand partnerships</h3><p>Interested in discussing an affiliate partnership? Contact us by email.</p><a class="btn light" style="margin-top:16px" href="mailto:bzlikelybusiness@gmail.com?subject=Brand%20Partnership%20Enquiry">Email about partnerships</a></article>
+<article class="feature"><div class="ico">🌍</div><h3>Publisher enquiries</h3><p>Want to learn about joining BZlikely when publisher registration opens?</p><a class="btn light" style="margin-top:16px" href="mailto:bzlikelybusiness@gmail.com?subject=Publisher%20Enquiry">Email as a publisher</a></article>
+<article class="feature"><div class="ico">✉️</div><h3>General contact</h3><p>For other questions, reach us at our business email address.</p><a class="btn light" style="margin-top:16px" href="mailto:bzlikelybusiness@gmail.com">bzlikelybusiness@gmail.com</a></article>
+</div></div></section>
+
 <section id="about"><div class="wrap"><div class="cta"><div><h2>Grow through trusted partnerships.</h2><p>BZlikely is at the early development stage. We are preparing the platform and evaluating brand partnerships.</p></div><button class="btn" onclick="showModal()">Register interest</button></div></div></section>
 </main>
-<footer><div class="wrap"><div class="foot"><div><strong>BZlikely</strong><div>Connect. Promote. Earn.</div></div><div>© <span id="year"></span> BZlikely. All rights reserved.</div></div><div class="disclosure">Affiliate disclosure: BZlikely may earn commissions from qualifying purchases through approved affiliate partnerships. No brand affiliation is implied unless expressly stated. Current catalog content is illustrative and does not contain active affiliate offers.</div></div></footer>
+<footer><div class="wrap"><div class="foot"><div><strong>BZlikely</strong><div>Connect. Promote. Earn.</div></div><div><a href="mailto:bzlikelybusiness@gmail.com">bzlikelybusiness@gmail.com</a><br>© <span id="year"></span> BZlikely. All rights reserved.</div></div><div class="disclosure">Affiliate disclosure: BZlikely may earn commissions from qualifying purchases through approved affiliate partnerships. No brand affiliation is implied unless expressly stated. Current catalog content is illustrative and does not contain active affiliate offers.</div></div></footer>
 <div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modalbox"><button class="close" onclick="closeModal()">✕</button><h3 id="modalTitle">Publisher registration is coming</h3><p id="modalText">The public website preview is ready, but secure publisher accounts, brand approvals, tracking and payout processing are not connected yet. We will open registration after those systems are in place.</p><button class="btn primary" onclick="closeModal()">Understood</button></div></div>
 <script>
 document.getElementById('year').textContent=new Date().getFullYear();
