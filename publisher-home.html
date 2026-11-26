@@ -1,9 +1,360 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BZlikely | Publisher Home</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;background:#f4f6fa;font-family:Arial,sans-serif;
+ color:#172033;padding-bottom:85px
+}
+header{background:#142b52;color:white;padding:22px}
+header h1{margin:0 0 7px}
+header p{margin:0;color:#d5e0f2;font-size:14px}
+main{padding:18px;max-width:650px;margin:auto}
+.section{display:none}
+.section.active{display:block}
+.card{
+ background:white;border-radius:14px;padding:20px;
+ margin-bottom:15px;box-shadow:0 2px 10px #0000000b
+}
+h3{margin-top:0}
+.small{font-size:13px;color:#687386;line-height:1.6}
+input{
+ width:100%;padding:13px;border:1px solid #ccd3df;
+ border-radius:9px;margin:7px 0 13px;font-size:15px
+}
+button{
+ border:0;border-radius:9px;padding:12px 16px;
+ background:#1769df;color:white;font-size:15px;cursor:pointer
+}
+button:disabled{opacity:.6}
+.link-item{
+ border:1px solid #e2e6ed;border-radius:10px;
+ padding:13px;margin-top:12px;overflow-wrap:anywhere
+}
+.link-item a{color:#1769df;word-break:break-all}
+.delete{background:#d93636;margin-top:10px}
+#message{font-size:14px;margin:12px 0;color:#1769df;line-height:1.5}
+nav{
+ position:fixed;bottom:0;left:0;right:0;background:white;
+ display:flex;justify-content:space-around;
+ padding:10px 3px calc(10px + env(safe-area-inset-bottom));
+ box-shadow:0 -2px 12px #00000012
+}
+nav button{
+ background:white;color:#536078;padding:8px 4px;
+ font-size:12px;flex:1
+}
+nav button.active{color:#1769df;font-weight:bold}
+nav span{display:block;font-size:20px;margin-bottom:3px}
+footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>BZlikely</h1>
+<p>Publisher Portal</p>
+<p id="welcome" style="margin-top:8px">Checking account...</p>
+</header>
+
+<main>
+
+<section id="links" class="section active">
+<div class="card">
+<h3>My Affiliate Links</h3>
+<p class="small">Add and manage your affiliate links.</p>
+
+<label>Product / Link Title</label>
+<input id="linkTitle" placeholder="Example: Walmart Shoes">
+
+<label>Affiliate URL</label>
+<input id="linkUrl" type="url" placeholder="https://example.com/your-link">
+
+<button id="addBtn" onclick="addLink()">Add Link</button>
+<div id="message"></div>
+</div>
+
+<div class="card">
+<h3>Saved Links</h3>
+<div id="linkList">Loading links...</div>
+</div>
+</section>
+
+<section id="dashboard" class="section">
+<div class="card">
+<h3>Publisher Dashboard</h3>
+<p>Welcome to your BZlikely publisher account.</p>
+<p class="small">Clicks, conversions and earnings will appear here when tracking is implemented.</p>
+</div>
+</section>
+
 <section id="payments" class="section">
 <div class="card">
 <h3>Payments</h3>
-<p>View your payment information and payment history.</p>
+<p>Payment system is coming soon.</p>
+<p class="small">Payment information is not available yet.</p>
 <button onclick="location.href='publisher-payments.html'">
 Open Payments
 </button>
 </div>
 </section>
+
+<section id="profile" class="section">
+<div class="card">
+<h3>My Profile</h3>
+<p id="profileName"></p>
+<p id="profileEmail"></p>
+<button onclick="location.href='publisher-profile.html'">Edit Profile</button>
+<br>
+<button class="delete" onclick="logout()">Logout</button>
+</div>
+</section>
+
+<footer>© 2026 BZlikely. All rights reserved.</footer>
+
+</main>
+
+<nav>
+<button class="active" onclick="showTab('links',this)">
+<span>🔗</span>Links
+</button>
+<button onclick="showTab('dashboard',this)">
+<span>📊</span>Dashboard
+</button>
+<button onclick="showTab('payments',this)">
+<span>💳</span>Payments
+</button>
+<button onclick="showTab('profile',this)">
+<span>👤</span>Profile
+</button>
+</nav>
+
+<script>
+const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXa";
+
+const db = window.supabase.createClient(
+ SUPABASE_URL,
+ SUPABASE_KEY
+);
+
+let currentUser = null;
+
+function showTab(id,btn){
+ document.querySelectorAll(".section").forEach(section=>{
+  section.classList.remove("active");
+ });
+
+ document.getElementById(id).classList.add("active");
+
+ document.querySelectorAll("nav button").forEach(button=>{
+  button.classList.remove("active");
+ });
+
+ btn.classList.add("active");
+
+ if(id === "links") loadLinks();
+ window.scrollTo(0,0);
+}
+
+function showMessage(text){
+ document.getElementById("message").textContent = text;
+}
+
+// Verify login AND approval before showing Home
+async function start(){
+
+ const {data,error} = await db.auth.getSession();
+
+ if(error || !data.session){
+  location.replace("publisher-login.html");
+  return;
+ }
+
+ currentUser = data.session.user;
+
+ const {data:profile,error:profileError} = await db
+  .from("publishers")
+  .select("full_name,email,status")
+  .eq("id",currentUser.id)
+  .maybeSingle();
+
+ if(profileError || !profile){
+  await db.auth.signOut();
+  alert("Unable to verify your publisher account. Please login again.");
+  location.replace("publisher-login.html");
+  return;
+ }
+
+ const status = (profile.status || "pending").toLowerCase();
+
+ if(status !== "approved"){
+  await db.auth.signOut();
+
+  if(status === "pending"){
+   alert("Your account is pending admin approval.");
+  }else if(status === "rejected"){
+   alert("Your publisher application has been rejected.");
+  }else{
+   alert("Your account status is not approved.");
+  }
+
+  location.replace("publisher-login.html");
+  return;
+ }
+
+ // Approved publisher
+ const name = profile.full_name || "Publisher";
+
+ document.getElementById("welcome").textContent =
+  "Welcome, " + name;
+
+ document.getElementById("profileName").textContent =
+  "Name: " + name;
+
+ document.getElementById("profileEmail").textContent =
+  "Email: " + currentUser.email;
+
+ await loadLinks();
+}
+
+async function addLink(){
+
+ const title = document.getElementById("linkTitle").value.trim();
+ const url = document.getElementById("linkUrl").value.trim();
+ const btn = document.getElementById("addBtn");
+
+ if(!title || !url){
+  showMessage("Please enter title and URL.");
+  return;
+ }
+
+ try{
+  const parsed = new URL(url);
+  if(!["http:","https:"].includes(parsed.protocol)){
+   throw new Error();
+  }
+ }catch(e){
+  showMessage("Please enter a valid URL starting with https://");
+  return;
+ }
+
+ btn.disabled = true;
+ showMessage("Saving link...");
+
+ const {error} = await db.from("publisher_links").insert({
+  publisher_id:currentUser.id,
+  title:title,
+  affiliate_url:url
+ });
+
+ btn.disabled = false;
+
+ if(error){
+  showMessage("Error: " + error.message);
+  return;
+ }
+
+ document.getElementById("linkTitle").value = "";
+ document.getElementById("linkUrl").value = "";
+
+ showMessage("Link saved successfully!");
+
+ await loadLinks();
+}
+
+async function loadLinks(){
+
+ if(!currentUser) return;
+
+ const list = document.getElementById("linkList");
+ list.textContent = "Loading links...";
+
+ const {data,error} = await db
+  .from("publisher_links")
+  .select("id,title,affiliate_url,created_at")
+  .eq("publisher_id",currentUser.id)
+  .order("created_at",{ascending:false});
+
+ if(error){
+  list.textContent = "Could not load links: " + error.message;
+  return;
+ }
+
+ if(!data || data.length === 0){
+  list.textContent = "No links added yet.";
+  return;
+ }
+
+ list.innerHTML = "";
+
+ data.forEach(item=>{
+
+  const box = document.createElement("div");
+  box.className = "link-item";
+
+  const heading = document.createElement("strong");
+  heading.textContent = item.title;
+
+  const br = document.createElement("br");
+
+  const anchor = document.createElement("a");
+  anchor.href = item.affiliate_url;
+  anchor.target = "_blank";
+  anchor.rel = "noopener noreferrer";
+  anchor.textContent = item.affiliate_url;
+
+  const del = document.createElement("button");
+  del.className = "delete";
+  del.textContent = "Delete";
+  del.onclick = ()=>deleteLink(item.id);
+
+  box.append(
+   heading,
+   br,
+   anchor,
+   document.createElement("br"),
+   del
+  );
+
+  list.appendChild(box);
+ });
+}
+
+async function deleteLink(id){
+
+ if(!confirm("Delete this link?")) return;
+
+ const {error} = await db
+  .from("publisher_links")
+  .delete()
+  .eq("id",id)
+  .eq("publisher_id",currentUser.id);
+
+ if(error){
+  alert("Error: " + error.message);
+  return;
+ }
+
+ await loadLinks();
+}
+
+async function logout(){
+
+ await db.auth.signOut();
+ location.replace("publisher-login.html");
+}
+
+start();
+</script>
+
+</body>
+</html>
