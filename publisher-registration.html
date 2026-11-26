@@ -1,2 +1,196 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publisher Registration | BZlikely</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 25px 15px;
+      font-family: Arial, sans-serif;
+      background: #f3f6fb;
+      color: #172033;
+    }
+    .container {
+      max-width: 480px;
+      margin: 25px auto;
+      padding: 28px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 5px 25px #00000012;
+    }
+    h1 { text-align: center; color: #1746a2; }
+    .sub { text-align: center; color: #657087; }
+    label {
+      display: block;
+      margin: 15px 0 6px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccd3df;
+      border-radius: 7px;
+      font-size: 15px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 22px;
+      background: #1746a2;
+      color: white;
+      border: 0;
+      border-radius: 7px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    button:disabled { opacity: .6; }
+    #message {
+      margin-top: 15px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+    .small {
+      text-align: center;
+      font-size: 13px;
+      color: #657087;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>BZlikely</h1>
+  <p class="sub">Publisher Registration</p>
+
+  <form id="registerForm">
+    <label>Full Name *</label>
+    <input id="fullName" type="text" required>
+
+    <label>Email Address *</label>
+    <input id="email" type="email" required>
+
+    <label>Password *</label>
+    <input id="password" type="password" minlength="6" required>
+
+    <label>Country *</label>
+    <input id="country" type="text" required>
+
+    <label>Website or Social Media Link</label>
+    <input id="website" type="url" placeholder="https://">
+
+    <label>Promotion Platform *</label>
+    <select id="platform" required>
+      <option value="">Select platform</option>
+      <option>Facebook</option>
+      <option>YouTube</option>
+      <option>Instagram</option>
+      <option>TikTok</option>
+      <option>Website / Blog</option>
+      <option>Other</option>
+    </select>
+
+    <label>Promotion Method *</label>
+    <select id="method" required>
+      <option value="">Select method</option>
+      <option>Social Media Posts</option>
+      <option>Groups and Communities</option>
+      <option>Videos</option>
+      <option>Blog / Website</option>
+      <option>Other</option>
+    </select>
+
+    <button id="submitBtn" type="submit">
+      Create Publisher Account
+    </button>
+    <p id="message" role="status"></p>
+  </form>
+
+  <p class="small">
+    By registering, you agree to BZlikely's Terms and Privacy Policy.
+  </p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+const form = document.getElementById("registerForm");
+const message = document.getElementById("message");
+const button = document.getElementById("submitBtn");
+
+form.addEventListener("submit", async function(event) {
+  event.preventDefault();
+
+  button.disabled = true;
+  button.textContent = "Creating account...";
+  message.textContent = "Please wait...";
+
+  const fullName = document.getElementById("fullName").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const country = document.getElementById("country").value.trim();
+  const website = document.getElementById("website").value.trim();
+  const platform = document.getElementById("platform").value;
+  const method = document.getElementById("method").value;
+
+  try {
+    const { data, error } = await supabaseClient.auth.signUp({
+      email: email,
+      password: password
+    });
+
+    if (error) throw error;
+
+    if (!data.session) {
+      message.textContent =
+        "Account created. Please check your email to confirm your account. Profile saving will need to be completed after sign-in.";
+      return;
+    }
+
+    const { error: profileError } = await supabaseClient
+      .from("publishers")
+      .insert({
+        id: data.user.id,
+        full_name: fullName,
+        email: email,
+        country: country,
+        website_or_social: website || null,
+        promotion_platform: platform,
+        promotion_method: method
+      });
+
+    if (profileError) {
+      message.textContent =
+        "Your account was created, but profile saving failed: " +
+        profileError.message +
+        ". Please contact BZlikely support.";
+      return;
+    }
+
+    message.textContent =
+      "Registration successful! Your BZlikely publisher account has been created.";
+    form.reset();
+
+  } catch (error) {
+    message.textContent = "Registration error: " + error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Create Publisher Account";
+  }
+});
+</script>
+
+</body>
+</html>
