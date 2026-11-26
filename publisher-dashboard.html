@@ -3,234 +3,118 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Publisher Dashboard | BZlikely</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BZlikely Publisher Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root {
-  --ink:#142033; --muted:#667085; --line:#e7ebf2;
-  --blue:#315efb; --bg:#f5f7fb;
-}
-* { box-sizing:border-box; }
-body {
-  margin:0; background:var(--bg);
-  font-family:Arial,sans-serif; color:var(--ink);
-}
-#app[hidden] { display:none; }
-a { color:var(--blue); text-decoration:none; }
-.top { background:white; border-bottom:1px solid var(--line); padding:16px 0; }
-.wrap { width:min(1080px,calc(100% - 32px)); margin:auto; }
-.toprow { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
-.brand { font-size:22px; font-weight:850; color:var(--ink); }
-button {
-  border:0; border-radius:8px; padding:10px 15px;
-  background:#e9edff; color:var(--blue);
-  font-weight:bold; cursor:pointer;
-}
-main { padding:30px 0 60px; }
-.eyebrow { font-size:12px; font-weight:800; letter-spacing:.12em; color:var(--blue); }
-h1 { font-size:clamp(28px,4vw,38px); margin:8px 0; }
-.sub { color:var(--muted); margin:0 0 22px; }
-.notice {
-  background:#fff8e8; border:1px solid #f2d99d;
-  color:#77530b; padding:14px 16px;
-  border-radius:12px; margin:20px 0 24px; font-size:14px;
-}
-.profile {
-  background:white; border:1px solid var(--line);
-  padding:16px; border-radius:12px; margin:18px 0;
-}
-.grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
-.card {
-  background:white; border:1px solid var(--line);
-  border-radius:15px; padding:18px;
-  box-shadow:0 3px 12px rgba(16,24,40,.03);
-}
-.metric-label { font-size:13px; color:var(--muted); }
-.metric { font-size:28px; font-weight:800; margin-top:7px; }
-.metric-note { font-size:12px; color:var(--muted); margin-top:5px; }
-.two { display:grid; grid-template-columns:1.2fr .8fr; gap:16px; margin-top:16px; }
-.card h2 { font-size:18px; margin:0 0 14px; }
-.row {
-  display:flex; justify-content:space-between; gap:12px;
-  padding:13px 0; border-top:1px solid var(--line); font-size:14px;
-}
-.status {
-  display:inline-block; border-radius:999px; padding:4px 9px;
-  background:#eef2f7; color:#475467; font-size:11px; font-weight:700;
-}
-ul { padding-left:19px; color:#475467; font-size:14px; line-height:1.8; }
-.small { font-size:12px; color:var(--muted); }
-footer {
-  padding:24px 0; border-top:1px solid var(--line);
-  color:var(--muted); font-size:13px; background:white;
-}
-#profileError { color:#a33; font-size:13px; }
-@media(max-width:760px) {
-  .grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
-  .two { grid-template-columns:1fr; }
-}
-@media(max-width:420px) {
-  .card { padding:14px; }
-  .metric { font-size:24px; }
-}
+*{box-sizing:border-box}
+body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033}
+header{background:#142b52;color:white;padding:22px}
+header h2{margin:0 0 8px}
+header p{margin:0;color:#d5e0f2}
+main{padding:20px;max-width:650px;margin:auto}
+.card{background:white;padding:20px;border-radius:14px;margin-bottom:15px;box-shadow:0 2px 10px #0000000b}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.stat{background:white;padding:18px 12px;border-radius:13px;box-shadow:0 2px 10px #0000000b}
+.stat p{margin:0 0 12px;color:#687386;font-size:14px}
+.stat h2{margin:0;color:#1769df;font-size:27px}
+button{border:0;background:#1769df;color:white;padding:13px 17px;border-radius:9px;font-size:15px;cursor:pointer;margin:5px 5px 5px 0}
+.secondary{background:#142b52}
+.small{font-size:13px;color:#687386}
+#error{color:#c62828;font-size:14px}
 </style>
 </head>
 <body>
 
-<div id="app" hidden>
-<header class="top">
-  <div class="wrap toprow">
-    <a class="brand" href="index.html">BZlikely</a>
-    <div>
-      <a href="index.html">Website</a>
-      <button id="logoutBtn" type="button">Logout</button>
-    </div>
-  </div>
+<header>
+<h2>BZlikely</h2>
+<p>Publisher Dashboard</p>
+<p id="welcome" class="small">Loading account...</p>
 </header>
 
-<main class="wrap">
-  <div class="eyebrow">Publisher area · Account</div>
-  <h1>Publisher Dashboard</h1>
-  <p class="sub">Welcome to your BZlikely publisher account.</p>
-
-  <section class="profile">
-    <strong id="publisherName">Loading profile...</strong>
-    <p id="publisherEmail" class="small"></p>
-    <p id="profileError"></p>
-  </section>
-
-  <div class="notice">
-    <strong>Dashboard preview only.</strong>
-    The figures below are placeholders, not real clicks, sales,
-    commissions or balances. Tracking and payouts are not active yet.
-  </div>
-
-  <section class="grid">
-    <div class="card">
-      <div class="metric-label">Total clicks</div>
-      <div class="metric">—</div>
-      <div class="metric-note">Tracking not connected</div>
-    </div>
-    <div class="card">
-      <div class="metric-label">Confirmed sales</div>
-      <div class="metric">—</div>
-      <div class="metric-note">No live sales reports</div>
-    </div>
-    <div class="card">
-      <div class="metric-label">Pending commission</div>
-      <div class="metric">—</div>
-      <div class="metric-note">No active commission</div>
-    </div>
-    <div class="card">
-      <div class="metric-label">Available for payout</div>
-      <div class="metric">—</div>
-      <div class="metric-note">Payouts not enabled</div>
-    </div>
-  </section>
-
-  <section class="two">
-    <div class="card">
-      <h2>My affiliate programmes</h2>
-      <div class="row"><span>Brand programmes</span><span class="status">Coming soon</span></div>
-      <div class="row"><span>Approved tracking links</span><span class="status">Not active</span></div>
-      <div class="row"><span>Clicks and sales reports</span><span class="status">Not active</span></div>
-      <p class="small">Brand approvals and tracking setup are still required.</p>
-    </div>
-
-    <div class="card">
-      <h2>Publisher account checklist</h2>
-      <ul>
-        <li>Publisher application and review</li>
-        <li>Promotional-channel checks</li>
-        <li>Brand programme approval</li>
-        <li>Tracking integration and test</li>
-        <li>Commission and payout rules</li>
-      </ul>
-    </div>
-  </section>
-
-  <section class="card" style="margin-top:16px">
-    <h2>What will be available later?</h2>
-    <p class="small">
-      Approved programmes, unique links, validated clicks,
-      confirmed orders, commission statements and payout history
-      will require further development and brand permissions.
-    </p>
-  </section>
-</main>
-
-<footer>
-  <div class="wrap">
-    © 2026 BZlikely ·
-    <a href="privacy-policy.html">Privacy Policy</a> ·
-    <a href="terms-and-conditions.html">Terms &amp; Conditions</a>
-  </div>
-</footer>
+<main>
+<div class="card">
+<h3>Account Overview</h3>
+<p class="small">Your publisher activity at a glance.</p>
 </div>
 
-<p id="loading" style="text-align:center;padding:50px">
-  Checking your login...
-</p>
+<div class="stats">
+<div class="stat">
+<p>Total Links</p>
+<h2 id="totalLinks">...</h2>
+</div>
+<div class="stat">
+<p>Total Clicks</p>
+<h2>0</h2>
+</div>
+<div class="stat">
+<p>Total Sales</p>
+<h2>0</h2>
+</div>
+<div class="stat">
+<p>Total Earnings</p>
+<h2>$0.00</h2>
+</div>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<div class="card" style="margin-top:16px">
+<h3>Account Information</h3>
+<p id="name">Name: Loading...</p>
+<p id="email">Email: Loading...</p>
+<p id="error"></p>
+<p class="small">Clicks, sales and earnings will be connected after tracking is implemented.</p>
+<button onclick="location.href='publisher-home.html'">Back to Publisher Home</button>
+<button class="secondary" onclick="logout()">Logout</button>
+</div>
+</main>
+
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-async function protectDashboard() {
-  const { data, error } = await supabaseClient.auth.getSession();
+async function start(){
+ const {data,error}=await db.auth.getSession();
 
-  if (error || !data.session) {
-    window.location.replace("publisher-login.html");
-    return;
-  }
+ if(error || !data.session){
+  location.href='publisher-login.html';
+  return;
+ }
 
-  const user = data.session.user;
+ const user=data.session.user;
 
-  document.getElementById("publisherEmail").textContent = user.email || "";
+ document.getElementById('email').textContent='Email: '+user.email;
 
-  const { data: profile, error: profileError } = await supabaseClient
-    .from("publishers")
-    .select("full_name,email")
-    .eq("id", user.id)
-    .maybeSingle();
+ const {data:profile}=await db.from('publishers')
+  .select('full_name')
+  .eq('id',user.id)
+  .maybeSingle();
 
-  if (profile) {
-    document.getElementById("publisherName").textContent =
-      profile.full_name;
-  } else {
-    document.getElementById("publisherName").textContent =
-      "Publisher Account";
-    document.getElementById("profileError").textContent =
-      "Profile details could not be loaded.";
-  }
+ const name=profile?.full_name || user.email;
+ document.getElementById('welcome').textContent='Welcome, '+name;
+ document.getElementById('name').textContent='Name: '+name;
 
-  document.getElementById("loading").hidden = true;
-  document.getElementById("app").hidden = false;
+ const {count,error:linkError}=await db
+  .from('publisher_links')
+  .select('*',{count:'exact',head:true})
+  .eq('publisher_id',user.id);
+
+ if(linkError){
+  document.getElementById('totalLinks').textContent='Error';
+  document.getElementById('error').textContent='Could not load links: '+linkError.message;
+ }else{
+  document.getElementById('totalLinks').textContent=count ?? 0;
+ }
 }
 
-document.getElementById("logoutBtn").addEventListener("click", async function() {
-  this.disabled = true;
-  this.textContent = "Logging out...";
+async function logout(){
+ await db.auth.signOut();
+ location.href='publisher-login.html';
+}
 
-  const { error } = await supabaseClient.auth.signOut();
-
-  if (error) {
-    alert("Logout failed: " + error.message);
-    this.disabled = false;
-    this.textContent = "Logout";
-    return;
-  }
-
-  window.location.replace("publisher-login.html");
-});
-
-protectDashboard();
+start();
 </script>
+
 </body>
 </html>
