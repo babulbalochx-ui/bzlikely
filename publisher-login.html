@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Publisher Login | BZlikely</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 25px 15px;
+      font-family: Arial, sans-serif;
+      background: #f3f6fb;
+      color: #172033;
+    }
+    .container {
+      max-width: 420px;
+      margin: 55px auto;
+      padding: 30px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 5px 25px #00000012;
+    }
+    h1 { text-align: center; color: #1746a2; }
+    p { text-align: center; color: #657087; }
+    label {
+      display: block;
+      margin: 18px 0 7px;
+      font-weight: bold;
+    }
+    input {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #ccd3df;
+      border-radius: 7px;
+      font-size: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      margin-top: 22px;
+      background: #1746a2;
+      color: white;
+      border: 0;
+      border-radius: 7px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    button:disabled { opacity: .6; }
+    #message {
+      margin-top: 15px;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+    .links {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    a { color: #1746a2; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>BZlikely</h1>
+  <p>Publisher Login</p>
+
+  <form id="loginForm">
+    <label>Email Address</label>
+    <input id="email" type="email" required>
+
+    <label>Password</label>
+    <input id="password" type="password" required>
+
+    <button id="loginBtn" type="submit">
+      Login to Account
+    </button>
+
+    <p id="message" role="status"></p>
+  </form>
+
+  <div class="links">
+    Don't have an account?
+    <a href="publisher-registration.html">Register Here</a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+const form = document.getElementById("loginForm");
+const message = document.getElementById("message");
+const button = document.getElementById("loginBtn");
+
+form.addEventListener("submit", async function(event) {
+  event.preventDefault();
+
+  button.disabled = true;
+  button.textContent = "Logging in...";
+  message.textContent = "Please wait...";
+
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+
+  try {
+    const { data, error } =
+      await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+
+    if (error) throw error;
+
+    message.textContent = "Login successful! Opening dashboard...";
+
+    window.location.href = "publisher-dashboard.html";
+
+  } catch (error) {
+    message.textContent = "Login error: " + error.message;
+    button.disabled = false;
+    button.textContent = "Login to Account";
+  }
+});
+</script>
+
+</body>
+</html>
