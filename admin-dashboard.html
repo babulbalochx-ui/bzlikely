@@ -23,9 +23,9 @@ button{border:0;padding:10px 14px;border-radius:7px;color:white;cursor:pointer;m
 .reject{background:#d93636}
 .refresh{background:#1769df}
 .logout{background:#555}
-.status{font-weight:bold}
 .small{font-size:13px;color:#687386}
-#message{margin-top:12px;color:#1769df}
+#message{margin-top:12px;color:#1769df;overflow-wrap:anywhere}
+#errorBox{background:#fff0f0;color:#a00000;padding:15px;border-radius:9px;margin-top:15px;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -36,6 +36,8 @@ button{border:0;padding:10px 14px;border-radius:7px;color:white;cursor:pointer;m
 <p>Company Administration Panel</p>
 <p id="adminEmail"></p>
 </header>
+
+<div id="errorBox" hidden></div>
 
 <div class="card stats">
 <div class="stat">
@@ -55,7 +57,7 @@ button{border:0;padding:10px 14px;border-radius:7px;color:white;cursor:pointer;m
 <div class="card">
 <h3>Publisher Applications</h3>
 <button class="refresh" onclick="loadPublishers()">Refresh List</button>
-<div id="message">Loading...</div>
+<div id="message">Checking admin access...</div>
 <div id="publisherList"></div>
 </div>
 
@@ -68,19 +70,48 @@ button{border:0;padding:10px 14px;border-radius:7px;color:white;cursor:pointer;m
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXa";
-const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const db = window.supabase.createClient(
+SUPABASE_URL,
+SUPABASE_KEY
+);
 
 let currentUser = null;
+let adminVerified = false;
+
+function showError(title,details){
+ const box=document.getElementById('errorBox');
+ box.hidden=false;
+ box.innerHTML='';
+ const heading=document.createElement('h3');
+ heading.textContent=title;
+ const paragraph=document.createElement('p');
+ paragraph.textContent=details;
+ box.append(heading,paragraph);
+}
 
 async function start(){
+ document.getElementById('message').textContent="Checking login...";
+
  const {data,error}=await db.auth.getSession();
 
- if(error || !data.session){
+ if(error){
+  showError("Login Error",error.message);
+  return;
+ }
+
+ if(!data.session){
   location.href="publisher-login.html";
   return;
  }
 
  currentUser=data.session.user;
+
+ document.getElementById('adminEmail').textContent=
+ "Logged in: "+currentUser.email;
+
+ document.getElementById('message').textContent=
+ "Checking admin permission...";
 
  const {data:admin,error:adminError}=await db
   .from('admins')
@@ -88,17 +119,34 @@ async function start(){
   .eq('user_id',currentUser.id)
   .maybeSingle();
 
- if(adminError || !admin){
-  document.body.innerHTML="<h2>Access Denied</h2><p>Admin permission required.</p>";
-  await db.auth.signOut();
+ if(adminError){
+  showError("Admin Database Error",
+   adminError.message+
+   " | Code: "+(adminError.code || "Not available")+
+   " | Your UID: "+currentUser.id
+  );
   return;
  }
 
- document.getElementById('adminEmail').textContent=currentUser.email;
+ if(!admin){
+  showError("Admin Record Not Found",
+   "Logged in email: "+currentUser.email+
+   " | Your UID: "+currentUser.id+
+   " | This UID was not found in the admins table."
+  );
+  return;
+ }
+
+ adminVerified=true;
+ document.getElementById('message').textContent=
+ "Admin access verified.";
+
  await loadPublishers();
 }
 
 async function loadPublishers(){
+ if(!adminVerified)return;
+
  const message=document.getElementById('message');
  const list=document.getElementById('publisherList');
 
@@ -110,14 +158,17 @@ async function loadPublishers(){
   .order('created_at',{ascending:false});
 
  if(error){
-  message.textContent="Error: "+error.message;
+  message.textContent="Publisher Error: "+error.message;
   return;
  }
 
  const publishers=data || [];
+
  document.getElementById('total').textContent=publishers.length;
- document.getElementById('pending').textContent=publishers.filter(p=>(p.status||'pending')==='pending').length;
- document.getElementById('approved').textContent=publishers.filter(p=>p.status==='approved').length;
+ document.getElementById('pending').textContent=
+ publishers.filter(p=>(p.status||'pending')==='pending').length;
+ document.getElementById('approved').textContent=
+ publishers.filter(p=>p.status==='approved').length;
 
  if(publishers.length===0){
   message.textContent="No publishers found.";
@@ -146,9 +197,7 @@ async function loadPublishers(){
   addLine("Promotion Method",p.promotion_method);
   addLine("Status",p.status || "pending");
 
-  const status=(p.status || 'pending');
-
-  if(status==='pending'){
+  if((p.status||'pending')==='pending'){
    const approve=document.createElement('button');
    approve.className='approve';
    approve.textContent='Approve';
@@ -167,6 +216,8 @@ async function loadPublishers(){
 }
 
 async function changeStatus(id,status){
+ if(!adminVerified)return;
+
  if(!confirm("Change publisher status to "+status+"?"))return;
 
  const {error}=await db.from('publishers')
