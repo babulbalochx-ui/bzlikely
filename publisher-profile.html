@@ -1,0 +1,197 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile | BZlikely</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #f3f6fb;
+      font-family: Arial, sans-serif;
+      color: #172033;
+    }
+    .container {
+      max-width: 600px;
+      margin: 35px auto;
+      background: white;
+      padding: 28px;
+      border-radius: 14px;
+      box-shadow: 0 5px 25px #00000012;
+    }
+    h1 { margin-top: 0; color: #155eef; }
+    p { color: #667085; }
+    label {
+      display: block;
+      margin: 17px 0 7px;
+      font-weight: bold;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #d0d5dd;
+      border-radius: 8px;
+      font-size: 15px;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    input:disabled {
+      background: #f2f4f7;
+      color: #667085;
+    }
+    button, .link {
+      display: inline-block;
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 8px;
+      background: #155eef;
+      color: white;
+      font-size: 15px;
+      text-decoration: none;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    .logout { background: #d92d20; margin-left: 8px; }
+    #message { margin-top: 15px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>My Publisher Profile</h1>
+  <p>Manage your BZlikely account information.</p>
+
+  <label>Full Name</label>
+  <input id="full_name" type="text" placeholder="Your full name">
+
+  <label>Email Address</label>
+  <input id="email" type="email" disabled>
+
+  <label>Country</label>
+  <input id="country" type="text" placeholder="Your country">
+
+  <label>Website or Social Media Link</label>
+  <input id="website" type="text" placeholder="https://example.com">
+
+  <label>Promotion Platform</label>
+  <input id="platform" type="text" placeholder="Facebook, YouTube, Website etc.">
+
+  <label>Promotion Method</label>
+  <textarea id="method" placeholder="How do you promote products?"></textarea>
+
+  <button id="saveBtn" onclick="saveProfile()">Save Changes</button>
+  <a class="link" href="publisher-dashboard.html">Dashboard</a>
+  <button class="logout" onclick="logout()">Logout</button>
+
+  <div id="message"></div>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
+
+  const db = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+  let currentUser = null;
+
+  function showMessage(message, color) {
+    const box = document.getElementById("message");
+    box.textContent = message;
+    box.style.color = color;
+  }
+
+  async function loadProfile() {
+    showMessage("Loading profile...", "#667085");
+
+    const { data: sessionData, error: sessionError } =
+      await db.auth.getSession();
+
+    if (sessionError || !sessionData.session) {
+      window.location.href = "publisher-login.html";
+      return;
+    }
+
+    currentUser = sessionData.session.user;
+
+    const { data, error } = await db
+      .from("publishers")
+      .select("*")
+      .eq("id", currentUser.id)
+      .maybeSingle();
+
+    if (error) {
+      showMessage("Error loading profile: " + error.message, "#d92d20");
+      return;
+    }
+
+    if (!data) {
+      showMessage("Publisher profile not found.", "#d92d20");
+      return;
+    }
+
+    document.getElementById("full_name").value = data.full_name || "";
+    document.getElementById("email").value = currentUser.email || "";
+    document.getElementById("country").value = data.country || "";
+    document.getElementById("website").value = data.website_or_social || "";
+    document.getElementById("platform").value = data.promotion_platform || "";
+    document.getElementById("method").value = data.promotion_method || "";
+
+    showMessage("Profile loaded successfully.", "#027a48");
+  }
+
+  async function saveProfile() {
+    if (!currentUser) return;
+
+    const fullName = document.getElementById("full_name").value.trim();
+    const country = document.getElementById("country").value.trim();
+    const website = document.getElementById("website").value.trim();
+    const platform = document.getElementById("platform").value.trim();
+    const method = document.getElementById("method").value.trim();
+
+    if (!fullName || !country) {
+      showMessage("Full Name and Country are required.", "#d92d20");
+      return;
+    }
+
+    const button = document.getElementById("saveBtn");
+    button.disabled = true;
+    button.textContent = "Saving...";
+
+    const { error } = await db
+      .from("publishers")
+      .update({
+        full_name: fullName,
+        country: country,
+        website_or_social: website,
+        promotion_platform: platform,
+        promotion_method: method
+      })
+      .eq("id", currentUser.id);
+
+    button.disabled = false;
+    button.textContent = "Save Changes";
+
+    if (error) {
+      showMessage("Update failed: " + error.message, "#d92d20");
+      return;
+    }
+
+    showMessage("Profile updated successfully!", "#027a48");
+  }
+
+  async function logout() {
+    await db.auth.signOut();
+    window.location.href = "publisher-login.html";
+  }
+
+  loadProfile();
+</script>
+
+</body>
+</html>
