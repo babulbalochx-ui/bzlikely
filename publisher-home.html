@@ -4,309 +4,204 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BZlikely | Publisher Home</title>
+<title>BZlikely Publisher Home</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  background: #f5f7fb;
-  font-family: Arial, sans-serif;
-  color: #172033;
-  padding-bottom: 90px;
-}
-
-header {
-  background: #155eef;
-  color: white;
-  padding: 20px;
-}
-
-header h1 { margin: 0; font-size: 24px; }
-header p { margin: 6px 0 0; font-size: 13px; }
-
-.container {
-  max-width: 650px;
-  margin: 22px auto;
-  padding: 15px;
-}
-
-.welcome {
-  background: white;
-  padding: 22px;
-  border-radius: 14px;
-  margin-bottom: 18px;
-  box-shadow: 0 3px 15px #00000008;
-}
-
-.welcome h2 { margin-top: 0; }
-
-.page {
-  display: none;
-  background: white;
-  padding: 22px;
-  border-radius: 14px;
-  min-height: 220px;
-  box-shadow: 0 3px 15px #00000008;
-}
-
-.page.active { display: block; }
-
-.page h2 { margin-top: 0; }
-
-.description {
-  color: #667085;
-  line-height: 1.6;
-}
-
-.status {
-  display: inline-block;
-  background: #fff4e5;
-  color: #b54708;
-  padding: 7px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  margin: 10px 0;
-}
-
-.action {
-  display: inline-block;
-  background: #155eef;
-  color: white;
-  text-decoration: none;
-  border: none;
-  border-radius: 8px;
-  padding: 12px 18px;
-  margin-top: 12px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-#message {
-  margin-top: 15px;
-  color: #d92d20;
-  font-size: 14px;
-}
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  background: white;
-  display: flex;
-  justify-content: space-around;
-  padding: 10px 4px 12px;
-  box-shadow: 0 -3px 15px #00000012;
-  z-index: 100;
-}
-
-.nav-item {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color: #667085;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  cursor: pointer;
-  padding: 5px 0;
-}
-
-.nav-item svg {
-  width: 23px;
-  height: 23px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.nav-item.active { color: #155eef; font-weight: bold; }
-
-.logout {
-  background: #d92d20;
-  margin-top: 25px;
-}
-
-footer {
-  text-align: center;
-  color: #98a2b3;
-  font-size: 12px;
-  padding: 20px;
-}
+*{box-sizing:border-box}
+body{margin:0;background:#f4f6fa;font-family:Arial,sans-serif;color:#172033;padding-bottom:85px}
+header{background:#142b52;color:white;padding:20px}
+header h2{margin:0 0 5px}
+header p{margin:0;color:#d5e0f2;font-size:14px}
+main{padding:18px;max-width:600px;margin:auto}
+.section{display:none}
+.section.active{display:block}
+.card{background:white;border-radius:14px;padding:18px;margin-bottom:15px;box-shadow:0 2px 10px #0000000b}
+h3{margin-top:0}
+input{width:100%;padding:13px;border:1px solid #ccd3df;border-radius:9px;margin:7px 0 13px;font-size:15px}
+button{border:0;border-radius:9px;padding:12px 16px;background:#1769df;color:white;font-size:15px;cursor:pointer}
+button:disabled{opacity:.6}
+.link-item{border:1px solid #e2e6ed;border-radius:10px;padding:13px;margin-top:12px;overflow-wrap:anywhere}
+.link-item a{color:#1769df;word-break:break-all}
+.delete{background:#d93636;margin-top:10px}
+.small{font-size:13px;color:#687386}
+nav{position:fixed;bottom:0;left:0;right:0;background:white;display:flex;justify-content:space-around;padding:10px 3px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -2px 12px #00000012}
+nav button{background:white;color:#536078;padding:7px 5px;font-size:12px;flex:1}
+nav button.active{color:#1769df;font-weight:bold}
+nav span{display:block;font-size:20px;margin-bottom:3px}
+#message{font-size:14px;margin:10px 0;color:#1769df}
 </style>
 </head>
-
 <body>
 
 <header>
-  <h1>BZlikely</h1>
-  <p>Publisher Control Panel</p>
+<h2>BZlikely</h2>
+<p>Publisher Portal</p>
+<p id="welcome">Loading...</p>
 </header>
 
-<div class="container">
-
-  <div class="welcome">
-    <h2>Welcome, <span id="publisherName">Publisher</span>!</h2>
-    <p id="publisherEmail" class="description">Loading account...</p>
-  </div>
-
-  <section class="page active" id="links">
-    <h2>🔗 Generate Affiliate Link</h2>
-    <span class="status">Coming Soon</span>
-    <p class="description">
-      Generate affiliate tracking links for products and start promoting them.
-      This feature will be activated after our affiliate tracking system is ready.
-    </p>
-  </section>
-
-  <section class="page" id="dashboard">
-    <h2>📊 My Dashboard</h2>
-    <p class="description">
-      View your clicks, sales, conversions and commission information.
-    </p>
-    <a class="action" href="publisher-dashboard.html">Open Dashboard</a>
-  </section>
-
-  <section class="page" id="payments">
-    <h2>💳 Payments</h2>
-    <span class="status">Coming Soon</span>
-    <p class="description">
-      View your available balance, pending payments and payment history.
-      Payment services will be activated in a future update.
-    </p>
-  </section>
-
-  <section class="page" id="profile">
-    <h2>👤 My Profile</h2>
-    <p class="description">
-      Manage your personal details and publisher information.
-    </p>
-    <a class="action" href="publisher-profile.html">Manage Profile</a>
-    <br>
-    <button class="action logout" onclick="logout()">Logout</button>
-  </section>
-
-  <div id="message"></div>
-
+<main>
+<section id="links" class="section active">
+<div class="card">
+<h3>My Affiliate Links</h3>
+<p class="small">Add and manage your affiliate links.</p>
+<label>Product / Link Title</label>
+<input id="linkTitle" placeholder="Example: Walmart Shoes">
+<label>Affiliate URL</label>
+<input id="linkUrl" type="url" placeholder="https://example.com/your-link">
+<button id="addBtn" onclick="addLink()">Add Link</button>
+<div id="message"></div>
 </div>
+<div class="card">
+<h3>Saved Links</h3>
+<div id="linkList">Loading links...</div>
+</div>
+</section>
 
-<footer>© 2026 BZlikely. All rights reserved.</footer>
+<section id="dashboard" class="section">
+<div class="card">
+<h3>Publisher Dashboard</h3>
+<p>Welcome to your BZlikely publisher account.</p>
+<p class="small">Clicks, conversions and earnings will appear here when tracking is implemented.</p>
+</div>
+</section>
 
-<nav class="bottom-nav">
+<section id="payments" class="section">
+<div class="card">
+<h3>Payments</h3>
+<p>Payment system is coming soon.</p>
+<p class="small">Payment information is not available yet.</p>
+</div>
+</section>
 
-  <button class="nav-item active" onclick="showPage('links',this)">
-    <svg viewBox="0 0 24 24">
-      <path d="M10 13a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7"/>
-      <path d="M14 11a5 5 0 0 0-7.1 0l-3 3A5 5 0 0 0 11 21.1l1.7-1.7"/>
-    </svg>
-    Links
-  </button>
+<section id="profile" class="section">
+<div class="card">
+<h3>My Profile</h3>
+<p id="profileName"></p>
+<p id="profileEmail"></p>
+<button onclick="location.href='publisher-profile.html'">Edit Profile</button>
+<button class="delete" onclick="logout()">Logout</button>
+</div>
+</section>
+</main>
 
-  <button class="nav-item" onclick="showPage('dashboard',this)">
-    <svg viewBox="0 0 24 24">
-      <rect x="3" y="3" width="8" height="8" rx="1"/>
-      <rect x="13" y="3" width="8" height="5" rx="1"/>
-      <rect x="13" y="10" width="8" height="11" rx="1"/>
-      <rect x="3" y="13" width="8" height="8" rx="1"/>
-    </svg>
-    Dashboard
-  </button>
-
-  <button class="nav-item" onclick="showPage('payments',this)">
-    <svg viewBox="0 0 24 24">
-      <rect x="2" y="5" width="20" height="14" rx="2"/>
-      <path d="M2 10h20"/>
-      <path d="M6 15h4"/>
-    </svg>
-    Payments
-  </button>
-
-  <button class="nav-item" onclick="showPage('profile',this)">
-    <svg viewBox="0 0 24 24">
-      <circle cx="12" cy="8" r="4"/>
-      <path d="M4 21a8 8 0 0 1 16 0"/>
-    </svg>
-    Profile
-  </button>
-
+<nav>
+<button class="active" onclick="showTab('links',this)"><span>🔗</span>Links</button>
+<button onclick="showTab('dashboard',this)"><span>📊</span>Dashboard</button>
+<button onclick="showTab('payments',this)"><span>💳</span>Payments</button>
+<button onclick="showTab('profile',this)"><span>👤</span>Profile</button>
 </nav>
 
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
 
-const db = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let currentUser = null;
 
-function showPage(pageId, button) {
-  document.querySelectorAll(".page").forEach(page => {
-    page.classList.remove("active");
-  });
-
-  document.getElementById(pageId).classList.add("active");
-
-  document.querySelectorAll(".nav-item").forEach(item => {
-    item.classList.remove("active");
-  });
-
-  button.classList.add("active");
-  window.scrollTo(0, 0);
+function showTab(id,btn){
+ document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+ btn.classList.add('active');
+ if(id==='links') loadLinks();
 }
 
-async function checkLogin() {
-  const { data, error } = await db.auth.getSession();
-
-  if (error || !data.session) {
-    window.location.href = "publisher-login.html";
-    return;
-  }
-
-  const user = data.session.user;
-
-  document.getElementById("publisherEmail").textContent =
-    user.email || "";
-
-  const { data: profile, error: profileError } = await db
-    .from("publishers")
-    .select("full_name")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (profileError) {
-    document.getElementById("message").textContent =
-      "Could not load publisher profile.";
-    return;
-  }
-
-  if (profile) {
-    document.getElementById("publisherName").textContent =
-      profile.full_name || "Publisher";
-  }
+function message(text){
+ document.getElementById('message').textContent=text;
 }
 
-async function logout() {
-  const { error } = await db.auth.signOut();
+async function start(){
+ const {data,error}=await db.auth.getSession();
+ if(error || !data.session){
+  location.href='publisher-login.html';
+  return;
+ }
+ currentUser=data.session.user;
+ const {data:profile}=await db.from('publishers')
+  .select('full_name,email')
+  .eq('id',currentUser.id)
+  .maybeSingle();
 
-  if (error) {
-    document.getElementById("message").textContent =
-      "Logout failed: " + error.message;
-    return;
-  }
-
-  window.location.href = "publisher-login.html";
+ const name=profile?.full_name || currentUser.email;
+ document.getElementById('welcome').textContent='Welcome, '+name;
+ document.getElementById('profileName').textContent='Name: '+name;
+ document.getElementById('profileEmail').textContent='Email: '+currentUser.email;
+ await loadLinks();
 }
 
-checkLogin();
+async function addLink(){
+ const title=document.getElementById('linkTitle').value.trim();
+ const url=document.getElementById('linkUrl').value.trim();
+ const btn=document.getElementById('addBtn');
+
+ if(!title || !url){message('Please enter title and URL.');return;}
+ try{
+  const parsed=new URL(url);
+  if(!['http:','https:'].includes(parsed.protocol)) throw new Error();
+ }catch(e){message('Please enter a valid URL starting with https://');return;}
+
+ btn.disabled=true;
+ message('Saving link...');
+ const {error}=await db.from('publisher_links').insert({
+  publisher_id:currentUser.id,
+  title:title,
+  affiliate_url:url
+ });
+ btn.disabled=false;
+
+ if(error){message('Error: '+error.message);return;}
+ document.getElementById('linkTitle').value='';
+ document.getElementById('linkUrl').value='';
+ message('Link saved successfully!');
+ await loadLinks();
+}
+
+async function loadLinks(){
+ const list=document.getElementById('linkList');
+ list.textContent='Loading links...';
+ const {data,error}=await db.from('publisher_links')
+  .select('id,title,affiliate_url,created_at')
+  .eq('publisher_id',currentUser.id)
+  .order('created_at',{ascending:false});
+
+ if(error){list.textContent='Could not load links: '+error.message;return;}
+ if(!data || data.length===0){list.textContent='No links added yet.';return;}
+
+ list.innerHTML='';
+ data.forEach(item=>{
+  const box=document.createElement('div');
+  box.className='link-item';
+  const heading=document.createElement('strong');
+  heading.textContent=item.title;
+  const br=document.createElement('br');
+  const anchor=document.createElement('a');
+  anchor.href=item.affiliate_url;
+  anchor.target='_blank';
+  anchor.rel='noopener noreferrer';
+  anchor.textContent=item.affiliate_url;
+  const del=document.createElement('button');
+  del.className='delete';
+  del.textContent='Delete';
+  del.onclick=()=>deleteLink(item.id);
+  box.append(heading,br,anchor,document.createElement('br'),del);
+  list.appendChild(box);
+ });
+}
+
+async function deleteLink(id){
+ if(!confirm('Delete this link?'))return;
+ const {error}=await db.from('publisher_links')
+  .delete().eq('id',id).eq('publisher_id',currentUser.id);
+ if(error){alert('Error: '+error.message);return;}
+ await loadLinks();
+}
+
+async function logout(){
+ await db.auth.signOut();
+ location.href='publisher-login.html';
+}
+
+start();
 </script>
-
 </body>
 </html>
