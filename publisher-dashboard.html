@@ -1,69 +1,236 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="BZlikely publisher dashboard preview.">
-<title>Publisher Dashboard Preview — BZlikely</title>
+<title>Publisher Dashboard | BZlikely</title>
 <style>
-:root{--ink:#142033;--muted:#667085;--line:#e7ebf2;--blue:#315efb;--bg:#f5f7fb;--green:#16865b}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink)}
-a{color:var(--blue);text-decoration:none}.top{background:#fff;border-bottom:1px solid var(--line);padding:16px 0}.wrap{width:min(1080px,calc(100% - 32px));margin:auto}
-.brand{font-size:22px;font-weight:850;color:var(--ink)}.toprow{display:flex;justify-content:space-between;align-items:center;gap:16px}
-main{padding:30px 0 60px}.eyebrow{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--blue)}
-h1{font-size:clamp(28px,4vw,38px);letter-spacing:-1px;margin:8px 0}.sub{color:var(--muted);margin:0 0 22px}
-.notice{background:#fff8e8;border:1px solid #f2d99d;color:#77530b;padding:14px 16px;border-radius:12px;margin:20px 0 24px;font-size:14px}
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:18px;box-shadow:0 3px 12px rgba(16,24,40,.03)}
-.metric-label{font-size:13px;color:var(--muted)}.metric{font-size:28px;font-weight:800;margin-top:7px}.metric-note{font-size:12px;color:var(--muted);margin-top:5px}
-.two{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:16px}.card h2{font-size:18px;margin:0 0 14px}
-.row{display:flex;justify-content:space-between;gap:12px;padding:13px 0;border-top:1px solid var(--line);font-size:14px}.row:first-of-type{border-top:0}
-.status{display:inline-block;border-radius:999px;padding:4px 9px;background:#eef2f7;color:#475467;font-size:11px;font-weight:700}
-.btn{display:inline-block;background:var(--blue);color:white;padding:11px 15px;border-radius:10px;font-weight:700;font-size:14px}
-.btn.secondary{background:#eef2ff;color:var(--blue)}.actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
-ul{padding-left:19px;color:#475467;font-size:14px;line-height:1.8}.small{font-size:12px;color:var(--muted)}
-footer{padding:24px 0;border-top:1px solid var(--line);color:var(--muted);font-size:13px;background:#fff}
-@media(max-width:760px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.two{grid-template-columns:1fr}}
-@media(max-width:420px){.grid{grid-template-columns:1fr 1fr}.card{padding:14px}.metric{font-size:24px}}
+:root {
+  --ink:#142033; --muted:#667085; --line:#e7ebf2;
+  --blue:#315efb; --bg:#f5f7fb;
+}
+* { box-sizing:border-box; }
+body {
+  margin:0; background:var(--bg);
+  font-family:Arial,sans-serif; color:var(--ink);
+}
+#app[hidden] { display:none; }
+a { color:var(--blue); text-decoration:none; }
+.top { background:white; border-bottom:1px solid var(--line); padding:16px 0; }
+.wrap { width:min(1080px,calc(100% - 32px)); margin:auto; }
+.toprow { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.brand { font-size:22px; font-weight:850; color:var(--ink); }
+button {
+  border:0; border-radius:8px; padding:10px 15px;
+  background:#e9edff; color:var(--blue);
+  font-weight:bold; cursor:pointer;
+}
+main { padding:30px 0 60px; }
+.eyebrow { font-size:12px; font-weight:800; letter-spacing:.12em; color:var(--blue); }
+h1 { font-size:clamp(28px,4vw,38px); margin:8px 0; }
+.sub { color:var(--muted); margin:0 0 22px; }
+.notice {
+  background:#fff8e8; border:1px solid #f2d99d;
+  color:#77530b; padding:14px 16px;
+  border-radius:12px; margin:20px 0 24px; font-size:14px;
+}
+.profile {
+  background:white; border:1px solid var(--line);
+  padding:16px; border-radius:12px; margin:18px 0;
+}
+.grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; }
+.card {
+  background:white; border:1px solid var(--line);
+  border-radius:15px; padding:18px;
+  box-shadow:0 3px 12px rgba(16,24,40,.03);
+}
+.metric-label { font-size:13px; color:var(--muted); }
+.metric { font-size:28px; font-weight:800; margin-top:7px; }
+.metric-note { font-size:12px; color:var(--muted); margin-top:5px; }
+.two { display:grid; grid-template-columns:1.2fr .8fr; gap:16px; margin-top:16px; }
+.card h2 { font-size:18px; margin:0 0 14px; }
+.row {
+  display:flex; justify-content:space-between; gap:12px;
+  padding:13px 0; border-top:1px solid var(--line); font-size:14px;
+}
+.status {
+  display:inline-block; border-radius:999px; padding:4px 9px;
+  background:#eef2f7; color:#475467; font-size:11px; font-weight:700;
+}
+ul { padding-left:19px; color:#475467; font-size:14px; line-height:1.8; }
+.small { font-size:12px; color:var(--muted); }
+footer {
+  padding:24px 0; border-top:1px solid var(--line);
+  color:var(--muted); font-size:13px; background:white;
+}
+#profileError { color:#a33; font-size:13px; }
+@media(max-width:760px) {
+  .grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .two { grid-template-columns:1fr; }
+}
+@media(max-width:420px) {
+  .card { padding:14px; }
+  .metric { font-size:24px; }
+}
 </style>
 </head>
 <body>
-<header class="top"><div class="wrap toprow"><a class="brand" href="index.html">BZlikely</a><a href="index.html">Back to website</a></div></header>
+
+<div id="app" hidden>
+<header class="top">
+  <div class="wrap toprow">
+    <a class="brand" href="index.html">BZlikely</a>
+    <div>
+      <a href="index.html">Website</a>
+      <button id="logoutBtn" type="button">Logout</button>
+    </div>
+  </div>
+</header>
+
 <main class="wrap">
-<div class="eyebrow">Publisher area · Preview</div>
-<h1>Publisher Dashboard</h1>
-<p class="sub">A preview of the tools planned for approved BZlikely publishers.</p>
-<div class="notice"><strong>Preview only — not a live account.</strong> The figures below are sample placeholders, not real clicks, sales, commissions or balances. Publisher login, tracking and payouts are not active yet. Do not rely on these figures or share sensitive information here.</div>
-<section class="grid" aria-label="Sample dashboard metrics">
-<div class="card"><div class="metric-label">Total clicks</div><div class="metric">—</div><div class="metric-note">Will appear after tracking is connected</div></div>
-<div class="card"><div class="metric-label">Confirmed sales</div><div class="metric">—</div><div class="metric-note">Only reported by approved programmes</div></div>
-<div class="card"><div class="metric-label">Pending commission</div><div class="metric">—</div><div class="metric-note">No commission balance is active</div></div>
-<div class="card"><div class="metric-label">Available for payout</div><div class="metric">—</div><div class="metric-note">Payouts are not enabled</div></div>
-</section>
-<section class="two">
-<div class="card">
-<h2>My affiliate programmes</h2>
-<div class="row"><span>Brand programmes</span><span class="status">Coming soon</span></div>
-<div class="row"><span>Approved tracking links</span><span class="status">Not active</span></div>
-<div class="row"><span>Clicks and sales reports</span><span class="status">Not active</span></div>
-<div class="actions"><a class="btn" href="mailto:bzlikelybusiness@gmail.com?subject=Publisher%20Programme%20Enquiry">Ask about publisher access</a></div>
-</div>
-<div class="card">
-<h2>Publisher account checklist</h2>
-<ul>
-<li>Publisher application and review</li>
-<li>Identity and promotional-channel checks, if required</li>
-<li>Brand programme approval</li>
-<li>Tracking integration and test transaction</li>
-<li>Published commission and payout rules</li>
-</ul>
-<p class="small">These steps must be completed before real links, earnings or payouts can be offered.</p>
-</div>
-</section>
-<section class="card" style="margin-top:16px">
-<h2>What will be available later?</h2>
-<p style="color:#475467;font-size:14px;line-height:1.7;margin:0">After BZlikely obtains the necessary brand/network permissions and builds secure account, tracking and payment systems, this area can be developed to show each publisher's approved programmes, unique links, validated clicks, confirmed orders, commission statements and payout history.</p>
-</section>
+  <div class="eyebrow">Publisher area · Account</div>
+  <h1>Publisher Dashboard</h1>
+  <p class="sub">Welcome to your BZlikely publisher account.</p>
+
+  <section class="profile">
+    <strong id="publisherName">Loading profile...</strong>
+    <p id="publisherEmail" class="small"></p>
+    <p id="profileError"></p>
+  </section>
+
+  <div class="notice">
+    <strong>Dashboard preview only.</strong>
+    The figures below are placeholders, not real clicks, sales,
+    commissions or balances. Tracking and payouts are not active yet.
+  </div>
+
+  <section class="grid">
+    <div class="card">
+      <div class="metric-label">Total clicks</div>
+      <div class="metric">—</div>
+      <div class="metric-note">Tracking not connected</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">Confirmed sales</div>
+      <div class="metric">—</div>
+      <div class="metric-note">No live sales reports</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">Pending commission</div>
+      <div class="metric">—</div>
+      <div class="metric-note">No active commission</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">Available for payout</div>
+      <div class="metric">—</div>
+      <div class="metric-note">Payouts not enabled</div>
+    </div>
+  </section>
+
+  <section class="two">
+    <div class="card">
+      <h2>My affiliate programmes</h2>
+      <div class="row"><span>Brand programmes</span><span class="status">Coming soon</span></div>
+      <div class="row"><span>Approved tracking links</span><span class="status">Not active</span></div>
+      <div class="row"><span>Clicks and sales reports</span><span class="status">Not active</span></div>
+      <p class="small">Brand approvals and tracking setup are still required.</p>
+    </div>
+
+    <div class="card">
+      <h2>Publisher account checklist</h2>
+      <ul>
+        <li>Publisher application and review</li>
+        <li>Promotional-channel checks</li>
+        <li>Brand programme approval</li>
+        <li>Tracking integration and test</li>
+        <li>Commission and payout rules</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <h2>What will be available later?</h2>
+    <p class="small">
+      Approved programmes, unique links, validated clicks,
+      confirmed orders, commission statements and payout history
+      will require further development and brand permissions.
+    </p>
+  </section>
 </main>
-<footer><div class="wrap">© 2026 BZlikely · <a href="privacy-policy.html">Privacy Policy</a> · <a href="terms-and-conditions.html">Terms &amp; Conditions</a></div></footer>
+
+<footer>
+  <div class="wrap">
+    © 2026 BZlikely ·
+    <a href="privacy-policy.html">Privacy Policy</a> ·
+    <a href="terms-and-conditions.html">Terms &amp; Conditions</a>
+  </div>
+</footer>
+</div>
+
+<p id="loading" style="text-align:center;padding:50px">
+  Checking your login...
+</p>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
+
+const supabaseClient = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+async function protectDashboard() {
+  const { data, error } = await supabaseClient.auth.getSession();
+
+  if (error || !data.session) {
+    window.location.replace("publisher-login.html");
+    return;
+  }
+
+  const user = data.session.user;
+
+  document.getElementById("publisherEmail").textContent = user.email || "";
+
+  const { data: profile, error: profileError } = await supabaseClient
+    .from("publishers")
+    .select("full_name,email")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profile) {
+    document.getElementById("publisherName").textContent =
+      profile.full_name;
+  } else {
+    document.getElementById("publisherName").textContent =
+      "Publisher Account";
+    document.getElementById("profileError").textContent =
+      "Profile details could not be loaded.";
+  }
+
+  document.getElementById("loading").hidden = true;
+  document.getElementById("app").hidden = false;
+}
+
+document.getElementById("logoutBtn").addEventListener("click", async function() {
+  this.disabled = true;
+  this.textContent = "Logging out...";
+
+  const { error } = await supabaseClient.auth.signOut();
+
+  if (error) {
+    alert("Logout failed: " + error.message);
+    this.disabled = false;
+    this.textContent = "Logout";
+    return;
+  }
+
+  window.location.replace("publisher-login.html");
+});
+
+protectDashboard();
+</script>
 </body>
 </html>
