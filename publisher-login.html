@@ -46,6 +46,7 @@
       border-radius: 7px;
       font-size: 16px;
       font-weight: bold;
+      cursor: pointer;
     }
     button:disabled { opacity: .6; }
     #message {
@@ -121,9 +122,9 @@ form.addEventListener("submit", async function(event) {
 
     if (error) throw error;
 
-    message.textContent = "Login successful! Opening dashboard...";
+    message.textContent = "Login successful! Opening Publisher Home...";
 
-    window.location.href = "publisher-dashboard.html";
+    window.location.href = "publisher-home.html";
 
   } catch (error) {
     message.textContent = "Login error: " + error.message;
