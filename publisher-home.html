@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Publisher Home | BZlikely</title>
+<title>BZlikely | Publisher Home</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -12,97 +12,133 @@
 
 body {
   margin: 0;
-  background: #f3f6fb;
+  background: #f5f7fb;
   font-family: Arial, sans-serif;
   color: #172033;
+  padding-bottom: 90px;
 }
 
 header {
   background: #155eef;
   color: white;
-  padding: 22px;
+  padding: 20px;
 }
 
-header h1 { margin: 0; }
-header p { margin-bottom: 0; opacity: .9; }
+header h1 { margin: 0; font-size: 24px; }
+header p { margin: 6px 0 0; font-size: 13px; }
 
 .container {
-  max-width: 850px;
-  margin: 25px auto;
+  max-width: 650px;
+  margin: 22px auto;
   padding: 15px;
 }
 
 .welcome {
   background: white;
   padding: 22px;
-  border-radius: 12px;
-  margin-bottom: 20px;
+  border-radius: 14px;
+  margin-bottom: 18px;
+  box-shadow: 0 3px 15px #00000008;
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 16px;
-}
+.welcome h2 { margin-top: 0; }
 
-.card {
+.page {
+  display: none;
   background: white;
   padding: 22px;
-  border-radius: 12px;
-  box-shadow: 0 3px 15px #0000000b;
+  border-radius: 14px;
+  min-height: 220px;
+  box-shadow: 0 3px 15px #00000008;
 }
 
-.card h2 {
-  font-size: 19px;
-  margin-top: 0;
-}
+.page.active { display: block; }
 
-.card p {
+.page h2 { margin-top: 0; }
+
+.description {
   color: #667085;
-  line-height: 1.5;
-  min-height: 45px;
-}
-
-button {
-  width: 100%;
-  padding: 12px;
-  border: 0;
-  border-radius: 8px;
-  background: #155eef;
-  color: white;
-  font-size: 15px;
-  cursor: pointer;
-}
-
-button:disabled {
-  background: #98a2b3;
-  cursor: not-allowed;
-}
-
-.logout {
-  background: #d92d20;
-  margin-top: 22px;
+  line-height: 1.6;
 }
 
 .status {
   display: inline-block;
-  font-size: 12px;
-  padding: 5px 9px;
-  border-radius: 20px;
   background: #fff4e5;
   color: #b54708;
-  margin-bottom: 12px;
+  padding: 7px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  margin: 10px 0;
+}
+
+.action {
+  display: inline-block;
+  background: #155eef;
+  color: white;
+  text-decoration: none;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 18px;
+  margin-top: 12px;
+  cursor: pointer;
+  font-size: 14px;
 }
 
 #message {
   margin-top: 15px;
-  font-weight: bold;
+  color: #d92d20;
+  font-size: 14px;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: white;
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 4px 12px;
+  box-shadow: 0 -3px 15px #00000012;
+  z-index: 100;
+}
+
+.nav-item {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: #667085;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 5px 0;
+}
+
+.nav-item svg {
+  width: 23px;
+  height: 23px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.nav-item.active { color: #155eef; font-weight: bold; }
+
+.logout {
+  background: #d92d20;
+  margin-top: 25px;
 }
 
 footer {
   text-align: center;
-  color: #667085;
-  padding: 25px;
+  color: #98a2b3;
+  font-size: 12px;
+  padding: 20px;
 }
 </style>
 </head>
@@ -118,55 +154,89 @@ footer {
 
   <div class="welcome">
     <h2>Welcome, <span id="publisherName">Publisher</span>!</h2>
-    <p>Manage your affiliate activities from one place.</p>
-    <div id="publisherEmail"></div>
+    <p id="publisherEmail" class="description">Loading account...</p>
   </div>
 
-  <div class="grid">
+  <section class="page active" id="links">
+    <h2>🔗 Generate Affiliate Link</h2>
+    <span class="status">Coming Soon</span>
+    <p class="description">
+      Generate affiliate tracking links for products and start promoting them.
+      This feature will be activated after our affiliate tracking system is ready.
+    </p>
+  </section>
 
-    <div class="card">
-      <h2>Generate Affiliate Link</h2>
-      <span class="status">Coming Soon</span>
-      <p>Generate your affiliate tracking links for products.</p>
-      <button disabled>Coming Soon</button>
-    </div>
+  <section class="page" id="dashboard">
+    <h2>📊 My Dashboard</h2>
+    <p class="description">
+      View your clicks, sales, conversions and commission information.
+    </p>
+    <a class="action" href="publisher-dashboard.html">Open Dashboard</a>
+  </section>
 
-    <div class="card">
-      <h2>My Dashboard</h2>
-      <span class="status">Preview</span>
-      <p>View your clicks, sales, conversions and commissions.</p>
-      <button onclick="location.href='publisher-dashboard.html'">
-        Open Dashboard
-      </button>
-    </div>
+  <section class="page" id="payments">
+    <h2>💳 Payments</h2>
+    <span class="status">Coming Soon</span>
+    <p class="description">
+      View your available balance, pending payments and payment history.
+      Payment services will be activated in a future update.
+    </p>
+  </section>
 
-    <div class="card">
-      <h2>Payments</h2>
-      <span class="status">Coming Soon</span>
-      <p>View your earnings, payment requests and payment history.</p>
-      <button disabled>Coming Soon</button>
-    </div>
-
-    <div class="card">
-      <h2>My Profile</h2>
-      <span class="status">Available</span>
-      <p>Update your name, country and promotion information.</p>
-      <button onclick="location.href='publisher-profile.html'">
-        Manage Profile
-      </button>
-    </div>
-
-  </div>
+  <section class="page" id="profile">
+    <h2>👤 My Profile</h2>
+    <p class="description">
+      Manage your personal details and publisher information.
+    </p>
+    <a class="action" href="publisher-profile.html">Manage Profile</a>
+    <br>
+    <button class="action logout" onclick="logout()">Logout</button>
+  </section>
 
   <div id="message"></div>
 
-  <button class="logout" onclick="logout()">Logout</button>
-
 </div>
 
-<footer>
-  © 2026 BZlikely. All rights reserved.
-</footer>
+<footer>© 2026 BZlikely. All rights reserved.</footer>
+
+<nav class="bottom-nav">
+
+  <button class="nav-item active" onclick="showPage('links',this)">
+    <svg viewBox="0 0 24 24">
+      <path d="M10 13a5 5 0 0 0 7.1 0l3-3a5 5 0 0 0-7.1-7.1l-1.7 1.7"/>
+      <path d="M14 11a5 5 0 0 0-7.1 0l-3 3A5 5 0 0 0 11 21.1l1.7-1.7"/>
+    </svg>
+    Links
+  </button>
+
+  <button class="nav-item" onclick="showPage('dashboard',this)">
+    <svg viewBox="0 0 24 24">
+      <rect x="3" y="3" width="8" height="8" rx="1"/>
+      <rect x="13" y="3" width="8" height="5" rx="1"/>
+      <rect x="13" y="10" width="8" height="11" rx="1"/>
+      <rect x="3" y="13" width="8" height="8" rx="1"/>
+    </svg>
+    Dashboard
+  </button>
+
+  <button class="nav-item" onclick="showPage('payments',this)">
+    <svg viewBox="0 0 24 24">
+      <rect x="2" y="5" width="20" height="14" rx="2"/>
+      <path d="M2 10h20"/>
+      <path d="M6 15h4"/>
+    </svg>
+    Payments
+  </button>
+
+  <button class="nav-item" onclick="showPage('profile',this)">
+    <svg viewBox="0 0 24 24">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 21a8 8 0 0 1 16 0"/>
+    </svg>
+    Profile
+  </button>
+
+</nav>
 
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
@@ -176,6 +246,21 @@ const db = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 );
+
+function showPage(pageId, button) {
+  document.querySelectorAll(".page").forEach(page => {
+    page.classList.remove("active");
+  });
+
+  document.getElementById(pageId).classList.add("active");
+
+  document.querySelectorAll(".nav-item").forEach(item => {
+    item.classList.remove("active");
+  });
+
+  button.classList.add("active");
+  window.scrollTo(0, 0);
+}
 
 async function checkLogin() {
   const { data, error } = await db.auth.getSession();
