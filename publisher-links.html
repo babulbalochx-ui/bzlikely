@@ -6,104 +6,203 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Links | BZlikely</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033}
+body{
+  margin:0;
+  background:#f3f6fb;
+  font-family:Arial,sans-serif;
+  color:#172033;
+  visibility:hidden;
+}
 header{background:#142b52;color:white;padding:22px}
 header h2{margin:0 0 6px}
 main{max-width:650px;margin:auto;padding:18px}
-.card{background:white;padding:18px;border-radius:13px;margin-bottom:15px;box-shadow:0 2px 10px #0000000b}
-.item{border:1px solid #e0e5ed;border-radius:10px;padding:13px;margin-top:12px;overflow-wrap:anywhere}
+.card{
+  background:white;
+  padding:18px;
+  border-radius:13px;
+  margin-bottom:15px;
+  box-shadow:0 2px 10px #0000000b
+}
+.item{
+  border:1px solid #e0e5ed;
+  border-radius:10px;
+  padding:13px;
+  margin-top:12px;
+  overflow-wrap:anywhere
+}
 .item a{color:#1769df;word-break:break-all}
-button{border:0;border-radius:9px;padding:12px 16px;background:#1769df;color:white;font-size:15px;margin:5px 5px 5px 0}
+button{
+  border:0;
+  border-radius:9px;
+  padding:12px 16px;
+  background:#1769df;
+  color:white;
+  font-size:15px;
+  margin:5px 5px 5px 0;
+  cursor:pointer
+}
 .delete{background:#d93636}
 .small{font-size:13px;color:#687386}
 #message{color:#1769df}
 </style>
 </head>
+
 <body>
+
 <header>
-<h2>BZlikely</h2>
-<p>My Affiliate Links</p>
+  <h2>BZlikely</h2>
+  <p>My Affiliate Links</p>
 </header>
 
 <main>
-<div class="card">
-<h3>Saved Links</h3>
-<p class="small">Your personal affiliate link list.</p>
-<div id="list">Loading links...</div>
-<p id="message"></p>
-<button onclick="location.href='publisher-home.html'">Back to Home</button>
-<button onclick="location.href='publisher-dashboard.html'">Dashboard</button>
-</div>
+  <div class="card">
+    <h3>Saved Links</h3>
+    <p class="small">Your personal affiliate link list.</p>
+
+    <div id="list">Loading links...</div>
+    <p id="message"></p>
+
+    <button onclick="location.href='publisher-home.html'">
+      Back to Home
+    </button>
+
+    <button onclick="location.href='publisher-dashboard.html'">
+      Dashboard
+    </button>
+  </div>
 </main>
 
 <script>
 const SUPABASE_URL="https://acnpjyluvhvckrncqkyz.supabase.co";
 const SUPABASE_KEY="sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+const db=window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
 let user=null;
 
 async function start(){
- const {data,error}=await db.auth.getSession();
- if(error || !data.session){
-  location.href='publisher-login.html';
-  return;
- }
- user=data.session.user;
- loadLinks();
+
+  const {data,error}=await db.auth.getSession();
+
+  if(error || !data.session){
+    location.replace("publisher-login.html");
+    return;
+  }
+
+  user=data.session.user;
+
+  const {data:profile,error:profileError}=await db
+    .from("publishers")
+    .select("status")
+    .eq("id",user.id)
+    .maybeSingle();
+
+  if(profileError || !profile){
+    await db.auth.signOut();
+    alert("Unable to verify your publisher account. Please login again.");
+    location.replace("publisher-login.html");
+    return;
+  }
+
+  if(profile.status !== "approved"){
+    await db.auth.signOut();
+
+    if(profile.status === "pending"){
+      alert("Your account is pending admin approval.");
+    }else{
+      alert("Your publisher account is not approved.");
+    }
+
+    location.replace("publisher-login.html");
+    return;
+  }
+
+  await loadLinks();
+  document.body.style.visibility="visible";
 }
 
 async function loadLinks(){
- const list=document.getElementById('list');
- list.textContent='Loading links...';
 
- const {data,error}=await db.from('publisher_links')
- .select('id,title,affiliate_url,created_at')
- .eq('publisher_id',user.id)
- .order('created_at',{ascending:false});
+  const list=document.getElementById("list");
+  list.textContent="Loading links...";
 
- if(error){list.textContent='Error: '+error.message;return;}
- if(!data.length){list.textContent='No links added yet.';return;}
+  const {data,error}=await db
+    .from("publisher_links")
+    .select("id,title,affiliate_url,created_at")
+    .eq("publisher_id",user.id)
+    .order("created_at",{ascending:false});
 
- list.innerHTML='';
- data.forEach(item=>{
-  const box=document.createElement('div');
-  box.className='item';
+  if(error){
+    list.textContent="Error: "+error.message;
+    return;
+  }
 
-  const title=document.createElement('strong');
-  title.textContent=item.title;
+  if(!data.length){
+    list.textContent="No links added yet.";
+    return;
+  }
 
-  const url=document.createElement('a');
-  url.href=item.affiliate_url;
-  url.target='_blank';
-  url.rel='noopener noreferrer';
-  url.textContent=item.affiliate_url;
+  list.innerHTML="";
 
-  const del=document.createElement('button');
-  del.className='delete';
-  del.textContent='Delete';
-  del.onclick=()=>deleteLink(item.id);
+  data.forEach(item=>{
 
-  box.append(title,document.createElement('br'),url,document.createElement('br'),del);
-  list.appendChild(box);
- });
+    const box=document.createElement("div");
+    box.className="item";
+
+    const title=document.createElement("strong");
+    title.textContent=item.title;
+
+    const url=document.createElement("a");
+    url.href=item.affiliate_url;
+    url.target="_blank";
+    url.rel="noopener noreferrer";
+    url.textContent=item.affiliate_url;
+
+    const del=document.createElement("button");
+    del.className="delete";
+    del.textContent="Delete";
+    del.onclick=()=>deleteLink(item.id);
+
+    box.append(
+      title,
+      document.createElement("br"),
+      url,
+      document.createElement("br"),
+      del
+    );
+
+    list.appendChild(box);
+  });
 }
 
 async function deleteLink(id){
- if(!confirm('Delete this link?'))return;
- const {error}=await db.from('publisher_links')
- .delete().eq('id',id).eq('publisher_id',user.id);
 
- if(error){
-  document.getElementById('message').textContent='Error: '+error.message;
-  return;
- }
- document.getElementById('message').textContent='Link deleted.';
- loadLinks();
+  if(!confirm("Delete this link?"))return;
+
+  const {error}=await db
+    .from("publisher_links")
+    .delete()
+    .eq("id",id)
+    .eq("publisher_id",user.id);
+
+  if(error){
+    document.getElementById("message").textContent=
+      "Error: "+error.message;
+    return;
+  }
+
+  document.getElementById("message").textContent="Link deleted.";
+  loadLinks();
 }
 
 start();
 </script>
+
 </body>
 </html>
