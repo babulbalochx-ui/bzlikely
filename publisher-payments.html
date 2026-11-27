@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Publisher Payments | BZlikely</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033;padding:20px}
@@ -25,20 +24,20 @@ button:disabled{opacity:.6}
 .status.approved{background:#dcfce7;color:#166534}
 .status.rejected{background:#fee2e2;color:#991b1b}
 .status.none{background:#e5e7eb;color:#374151}
-.statusMessage{padding:13px;border-radius:9px;margin-top:12px;font-size:14px;line-height:1.6}
+.statusMessage{padding:13px;border-radius:9px;margin-top:12px;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
 .pendingMessage{background:#fff8e7;color:#795500}
 .approvedMessage{background:#eaf8ef;color:#166534}
 .rejectedMessage{background:#fff0f0;color:#a00000}
+.reasonBox{display:none;background:#fff0f0;border:1px solid #fecaca;color:#991b1b;padding:14px;border-radius:9px;margin-top:12px;line-height:1.6;overflow-wrap:anywhere}
+.reasonBox strong{display:block;margin-bottom:6px}
 #message{margin-top:12px;font-size:14px;overflow-wrap:anywhere}
 a{color:#1769e0;text-decoration:none}
 #pageContent{display:none}
 #errorBox{display:none;background:#fff0f0;color:#a40000;padding:16px;border-radius:10px;margin-top:20px;white-space:pre-wrap;overflow-wrap:anywhere}
 </style>
 </head>
-
 <body>
 <div class="container">
-
 <div class="header">
 <h2>BZlikely Payments</h2>
 <a href="publisher-home.html">← Home</a>
@@ -47,14 +46,20 @@ a{color:#1769e0;text-decoration:none}
 <div id="errorBox"></div>
 
 <div id="pageContent">
-
 <div class="card">
 <h3>Payment Verification</h3>
 <p>Current Status:</p>
 <span class="status none" id="paymentStatus">Loading...</span>
+
 <div id="statusMessage" class="statusMessage pendingMessage">
 Checking your payment verification status...
 </div>
+
+<div id="rejectionReason" class="reasonBox">
+<strong>Reason for Rejection:</strong>
+<span id="reasonText"></span>
+</div>
+
 <p class="note">
 Changing your bank details will reset verification to Pending.
 </p>
@@ -65,7 +70,6 @@ Changing your bank details will reset verification to Pending.
 <p class="note">Add your bank information for future publisher payouts.</p>
 
 <form id="paymentForm">
-
 <label>Account Holder Name</label>
 <input id="holder" type="text" required placeholder="Name as shown on bank account">
 
@@ -111,7 +115,6 @@ Your bank details are private. Payment verification does not mean that a payout 
 </p>
 <button class="logout" type="button" onclick="logout()">Logout</button>
 </div>
-
 </div>
 </div>
 
@@ -135,14 +138,18 @@ function message(text,color){
  el.style.color=color;
 }
 
-function showPaymentStatus(status){
+function showPaymentStatus(status,reason){
  const badge=document.getElementById("paymentStatus");
  const info=document.getElementById("statusMessage");
+ const reasonBox=document.getElementById("rejectionReason");
+ const reasonText=document.getElementById("reasonText");
 
  const value=(status||"pending").toLowerCase();
 
  badge.className="status";
  info.className="statusMessage";
+ reasonBox.style.display="none";
+ reasonText.textContent="";
 
  if(value==="approved"){
   badge.textContent="Approved";
@@ -153,7 +160,15 @@ function showPaymentStatus(status){
   badge.textContent="Rejected";
   badge.classList.add("rejected");
   info.classList.add("rejectedMessage");
-  info.textContent="Your bank details have been rejected. Please contact BZlikely administration for clarification before submitting corrected details.";
+  info.textContent="Your bank details have been rejected. Please review the administrator's reason below and correct your details.";
+
+  if(reason && reason.trim()){
+   reasonText.textContent=reason;
+   reasonBox.style.display="block";
+  }else{
+   reasonText.textContent="No rejection reason was provided. Please contact BZlikely administration.";
+   reasonBox.style.display="block";
+  }
  }else{
   badge.textContent="Pending";
   badge.classList.add("pending");
@@ -210,7 +225,7 @@ async function checkLogin(){
 async function loadPaymentDetails(){
  const {data,error}=await db
   .from("publisher_payment_methods")
-  .select("account_holder_name,bank_name,country,iban,swift_bic,currency,payment_status")
+  .select("account_holder_name,bank_name,country,iban,swift_bic,currency,payment_status,rejection_reason")
   .eq("publisher_id",currentUser.id)
   .maybeSingle();
 
@@ -227,7 +242,7 @@ async function loadPaymentDetails(){
   document.getElementById("swift").value=data.swift_bic||"";
   document.getElementById("currency").value=data.currency||"USD";
 
-  showPaymentStatus(data.payment_status||"pending");
+  showPaymentStatus(data.payment_status||"pending",data.rejection_reason||"");
   document.getElementById("saveBtn").textContent="Update Bank Details";
  }else{
   const badge=document.getElementById("paymentStatus");
@@ -237,6 +252,8 @@ async function loadPaymentDetails(){
   const info=document.getElementById("statusMessage");
   info.textContent="Please submit your bank details for verification.";
   info.className="statusMessage pendingMessage";
+
+  document.getElementById("rejectionReason").style.display="none";
  }
 }
 
