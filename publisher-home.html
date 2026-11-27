@@ -29,6 +29,7 @@ button:disabled{opacity:.6}
 #message{font-size:14px;margin:12px 0;color:#1769df;line-height:1.5}
 #accountError{color:#a00000;white-space:pre-wrap;overflow-wrap:anywhere}
 .stat{font-size:32px;font-weight:bold;color:#1769df;margin:12px 0}
+.product-clicks{background:#eef4ff;padding:10px;border-radius:8px;margin-top:12px;font-weight:bold;color:#1769df;font-size:14px}
 .history-item strong{display:block;margin-bottom:7px}
 .history-item p{margin:5px 0;font-size:13px;color:#687386}
 .report-buttons{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0}
@@ -65,7 +66,7 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 
 <div class="card">
 <h3>Saved Links</h3>
-<p class="small">Copy your BZlikely tracking link and share it with your audience.</p>
+<p class="small">Each product shows its own tracked clicks.</p>
 <div id="linkList">Loading links...</div>
 </div>
 </section>
@@ -84,7 +85,6 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 
 <p class="small" id="periodLabel">Today's tracked clicks</p>
 <div class="stat" id="clickCount">Loading...</div>
-
 <p class="small">Clicks recorded through your BZlikely tracking links. Sales and earnings tracking are not yet connected.</p>
 <button onclick="refreshDashboard()">Refresh Report</button>
 </div>
@@ -304,7 +304,7 @@ async function loadLinks(){
 
  list.innerHTML="";
 
- data.forEach(item=>{
+ const boxes=await Promise.all(data.map(async item=>{
   const box=document.createElement("div");
   box.className="link-item";
 
@@ -336,16 +336,49 @@ async function loadLinks(){
   copy.textContent="Copy Tracking Link";
   copy.onclick=()=>copyTrackingLink(trackingUrl,copy);
 
+  const countBox=document.createElement("div");
+  countBox.className="product-clicks";
+  countBox.textContent="Loading product clicks...";
+
+  const {count,countError}=await getProductClicks(item.id);
+
+  if(countError){
+   countBox.textContent="Product clicks unavailable";
+  }else{
+   countBox.textContent="Total product clicks: "+(count||0);
+  }
+
   const del=document.createElement("button");
   del.className="delete";
   del.textContent="Delete";
   del.onclick=()=>deleteLink(item.id);
 
-  box.append(heading,originalLabel,anchor,trackingLabel,trackingText,copy,
-   document.createElement("br"),del);
+  box.append(
+   heading,
+   originalLabel,
+   anchor,
+   trackingLabel,
+   trackingText,
+   copy,
+   countBox,
+   document.createElement("br"),
+   del
+  );
 
-  list.appendChild(box);
- });
+  return box;
+ }));
+
+ boxes.forEach(box=>list.appendChild(box));
+}
+
+async function getProductClicks(linkId){
+ const {count,error}=await db
+  .from("publisher_clicks")
+  .select("id",{count:"exact",head:true})
+  .eq("publisher_id",currentUser.id)
+  .eq("publisher_link_id",linkId);
+
+ return {count,countError:error};
 }
 
 function getPeriodStart(){
