@@ -8,134 +8,216 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033;padding:20px}
+body{
+ margin:0;background:#f3f6fb;font-family:Arial,sans-serif;
+ color:#172033;padding:20px;visibility:hidden
+}
 .container{max-width:650px;margin:auto}
 .header{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .card{background:white;padding:20px;border-radius:14px;margin-top:18px;box-shadow:0 2px 10px #0000000d}
 h2{margin:10px 0}
 label{display:block;font-size:14px;font-weight:bold;margin-top:15px}
-input,select{width:100%;padding:12px;margin-top:7px;border:1px solid #d0d5dd;border-radius:8px;font-size:15px;background:white}
-button{border:0;background:#1769e0;color:white;padding:12px 16px;border-radius:8px;cursor:pointer;margin-top:16px;width:100%;font-size:15px}
-button:disabled{opacity:.6}
+input,select{
+ width:100%;padding:12px;margin-top:7px;border:1px solid #d0d5dd;
+ border-radius:8px;font-size:15px;background:white
+}
+button{
+ border:0;background:#1769e0;color:white;padding:12px 16px;
+ border-radius:8px;cursor:pointer;margin-top:16px;width:100%;font-size:15px
+}
+button:disabled{opacity:.6;cursor:not-allowed}
 .logout{background:#667085}
 .note{color:#667085;font-size:13px;line-height:1.6}
-.status{display:inline-block;padding:8px 13px;border-radius:20px;font-size:13px;font-weight:bold;text-transform:capitalize}
+.status{
+ display:inline-block;padding:8px 13px;border-radius:20px;
+ font-size:13px;font-weight:bold;text-transform:capitalize
+}
 .status.pending{background:#fff4d6;color:#875900}
 .status.approved{background:#dcfce7;color:#166534}
 .status.rejected{background:#fee2e2;color:#991b1b}
 .status.none{background:#e5e7eb;color:#374151}
-.statusMessage{padding:13px;border-radius:9px;margin-top:12px;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.statusMessage{
+ padding:13px;border-radius:9px;margin-top:12px;
+ font-size:14px;line-height:1.6;overflow-wrap:anywhere
+}
 .pendingMessage{background:#fff8e7;color:#795500}
 .approvedMessage{background:#eaf8ef;color:#166534}
 .rejectedMessage{background:#fff0f0;color:#a00000}
-.reasonBox{display:none;background:#fff0f0;border:1px solid #fecaca;color:#991b1b;padding:14px;border-radius:9px;margin-top:12px;line-height:1.6;overflow-wrap:anywhere}
+.reasonBox{
+ display:none;background:#fff0f0;border:1px solid #fecaca;
+ color:#991b1b;padding:14px;border-radius:9px;margin-top:12px;
+ line-height:1.6;overflow-wrap:anywhere
+}
 .reasonBox strong{display:block;margin-bottom:6px}
 #message{margin-top:12px;font-size:14px;overflow-wrap:anywhere}
 a{color:#1769e0;text-decoration:none}
 #pageContent{display:none}
-#errorBox{display:none;background:#fff0f0;color:#a40000;padding:16px;border-radius:10px;margin-top:20px;white-space:pre-wrap;overflow-wrap:anywhere}
+#errorBox{
+ display:none;background:#fff0f0;color:#a40000;
+ padding:16px;border-radius:10px;margin-top:20px;
+ line-height:1.6;overflow-wrap:anywhere
+}
 </style>
 </head>
 <body>
 <div class="container">
+
 <div class="header">
-<h2>BZlikely Payments</h2>
-<a href="publisher-home.html">← Home</a>
+ <h2>BZlikely Payments</h2>
+ <a href="publisher-home.html">← Home</a>
 </div>
 
-<div id="errorBox"></div>
+<div id="errorBox">
+ <h3>Account Access Restricted</h3>
+ <div id="errorText"></div>
+ <p>For assistance, contact bzlikelybusiness@gmail.com</p>
+ <button class="logout" type="button" onclick="logout()">Return to Login</button>
+</div>
 
 <div id="pageContent">
-<div class="card">
-<h3>Payment Verification</h3>
-<p>Current Status:</p>
-<span class="status none" id="paymentStatus">Loading...</span>
 
-<div id="statusMessage" class="statusMessage pendingMessage">
-Checking your payment verification status...
-</div>
+ <div class="card">
+  <h3>Payment Verification</h3>
+  <p>Current Status:</p>
+  <span class="status none" id="paymentStatus">Loading...</span>
 
-<div id="rejectionReason" class="reasonBox">
-<strong>Reason for Rejection:</strong>
-<span id="reasonText"></span>
-</div>
+  <div id="statusMessage" class="statusMessage pendingMessage">
+   Checking your payment verification status...
+  </div>
 
-<p class="note">
-Changing your bank details will reset verification to Pending.
-</p>
-</div>
+  <div id="rejectionReason" class="reasonBox">
+   <strong>Reason for Rejection:</strong>
+   <span id="reasonText"></span>
+  </div>
 
-<div class="card">
-<h3>Bank Account Details</h3>
-<p class="note">Add your bank information for future publisher payouts.</p>
+  <p class="note">
+   Changing your bank details will reset verification to Pending.
+  </p>
+ </div>
 
-<form id="paymentForm">
-<label>Account Holder Name</label>
-<input id="holder" type="text" required placeholder="Name as shown on bank account">
+ <div class="card">
+  <h3>Bank Account Details</h3>
+  <p class="note">Add your bank information for future publisher payouts.</p>
 
-<label>Bank Name</label>
-<input id="bank" type="text" required placeholder="Enter bank name">
+  <form id="paymentForm">
+   <label>Account Holder Name</label>
+   <input id="holder" type="text" required maxlength="150"
+    placeholder="Name as shown on bank account">
 
-<label>Country</label>
-<select id="country" required>
-<option value="">Select country</option>
-<option>Pakistan</option>
-<option>United States</option>
-<option>United Kingdom</option>
-<option>United Arab Emirates</option>
-<option>India</option>
-<option>Canada</option>
-<option>Australia</option>
-<option>Other</option>
-</select>
+   <label>Bank Name</label>
+   <input id="bank" type="text" required maxlength="150"
+    placeholder="Enter bank name">
 
-<label>IBAN / Account Number</label>
-<input id="iban" type="text" required placeholder="Enter IBAN or account number" autocomplete="off">
+   <label>Country</label>
+   <select id="country" required>
+    <option value="">Select country</option>
+    <option>Pakistan</option>
+    <option>United States</option>
+    <option>United Kingdom</option>
+    <option>United Arab Emirates</option>
+    <option>India</option>
+    <option>Canada</option>
+    <option>Australia</option>
+    <option>Other</option>
+   </select>
 
-<label>SWIFT / BIC Code</label>
-<input id="swift" type="text" placeholder="Enter SWIFT/BIC code">
+   <label>IBAN / Account Number</label>
+   <input id="iban" type="text" required maxlength="100"
+    placeholder="Enter IBAN or account number" autocomplete="off">
 
-<label>Currency</label>
-<select id="currency">
-<option value="USD">USD</option>
-<option value="PKR">PKR</option>
-<option value="GBP">GBP</option>
-<option value="EUR">EUR</option>
-<option value="AED">AED</option>
-</select>
+   <label>SWIFT / BIC Code</label>
+   <input id="swift" type="text" maxlength="30"
+    placeholder="Enter SWIFT/BIC code">
 
-<button type="submit" id="saveBtn">Save Bank Details</button>
-<div id="message"></div>
-</form>
-</div>
+   <label>Currency</label>
+   <select id="currency">
+    <option value="USD">USD</option>
+    <option value="PKR">PKR</option>
+    <option value="GBP">GBP</option>
+    <option value="EUR">EUR</option>
+    <option value="AED">AED</option>
+   </select>
 
-<div class="card">
-<p class="note">
-Your bank details are private. Payment verification does not mean that a payout has been sent. Actual payouts are not active yet.
-</p>
-<button class="logout" type="button" onclick="logout()">Logout</button>
-</div>
+   <button type="submit" id="saveBtn">Save Bank Details</button>
+   <div id="message"></div>
+  </form>
+ </div>
+
+ <div class="card">
+  <p class="note">
+   Your bank details are private. Payment verification does not mean
+   that a payout has been sent. Actual payouts are not active yet.
+  </p>
+  <button class="logout" type="button" onclick="logout()">Logout</button>
+ </div>
+
 </div>
 </div>
 
 <script>
-const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
-const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
+const SUPABASE_URL="https://acnpjyluvhvckrncqkyz.supabase.co";
+const SUPABASE_KEY="sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VaGIXaZ";
 
-const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-let currentUser = null;
+let currentUser=null;
+let accountVerified=false;
 
 function showError(text){
- const box=document.getElementById("errorBox");
- box.textContent=text;
- box.style.display="block";
+ accountVerified=false;
+ document.getElementById("pageContent").style.display="none";
+ document.getElementById("errorText").textContent=text;
+ document.getElementById("errorBox").style.display="block";
+ document.body.style.visibility="visible";
 }
 
 function message(text,color){
  const el=document.getElementById("message");
  el.textContent=text;
  el.style.color=color;
+}
+
+async function verifyAccount(){
+ const {data:sessionData,error:sessionError}=await db.auth.getSession();
+
+ if(sessionError||!sessionData.session){
+  window.location.replace("publisher-login.html");
+  return false;
+ }
+
+ currentUser=sessionData.session.user;
+
+ const {data:publisher,error}=await db
+  .from("publishers")
+  .select("status,is_active")
+  .eq("id",currentUser.id)
+  .maybeSingle();
+
+ if(error||!publisher){
+  showError("Unable to verify your publisher account. Please contact BZlikely administration.");
+  return false;
+ }
+
+ if(publisher.is_active!==true){
+  showError("Your publisher account has been deactivated by BZlikely administration.");
+  return false;
+ }
+
+ const status=(publisher.status||"pending").toLowerCase();
+
+ if(status!=="approved"){
+  if(status==="pending"){
+   showError("Your publisher account is waiting for admin approval.");
+  }else if(status==="rejected"){
+   showError("Your publisher application has been rejected.");
+  }else{
+   showError("Your publisher account is not approved. Current status: "+status);
+  }
+  return false;
+ }
+
+ accountVerified=true;
+ return true;
 }
 
 function showPaymentStatus(status,reason){
@@ -162,13 +244,11 @@ function showPaymentStatus(status,reason){
   info.classList.add("rejectedMessage");
   info.textContent="Your bank details have been rejected. Please review the administrator's reason below and correct your details.";
 
-  if(reason && reason.trim()){
-   reasonText.textContent=reason;
-   reasonBox.style.display="block";
-  }else{
-   reasonText.textContent="No rejection reason was provided. Please contact BZlikely administration.";
-   reasonBox.style.display="block";
-  }
+  reasonText.textContent=reason&&reason.trim()
+   ?reason
+   :"No rejection reason was provided. Please contact BZlikely administration.";
+
+  reasonBox.style.display="block";
  }else{
   badge.textContent="Pending";
   badge.classList.add("pending");
@@ -179,46 +259,16 @@ function showPaymentStatus(status,reason){
 
 async function checkLogin(){
  try{
-  const {data,error}=await db.auth.getSession();
-
-  if(error){
-   showError("SESSION ERROR: "+error.message);
-   return;
-  }
-
-  if(!data.session){
-   window.location.replace("publisher-login.html");
-   return;
-  }
-
-  currentUser=data.session.user;
-
-  const {data:publisher,error:profileError}=await db
-   .from("publishers")
-   .select("status")
-   .eq("id",currentUser.id)
-   .maybeSingle();
-
-  if(profileError){
-   showError("PUBLISHER VERIFICATION ERROR\n\n"+profileError.message+"\n\nUser ID: "+currentUser.id);
-   return;
-  }
-
-  if(!publisher){
-   showError("No publisher profile found.\nUser ID: "+currentUser.id);
-   return;
-  }
-
-  if(publisher.status!=="approved"){
-   showError("Your publisher account is not approved.\nCurrent status: "+publisher.status);
-   return;
-  }
+  const verified=await verifyAccount();
+  if(!verified)return;
 
   document.getElementById("pageContent").style.display="block";
+  document.body.style.visibility="visible";
+
   await loadPaymentDetails();
 
  }catch(error){
-  showError("Unexpected error: "+error.message);
+  showError("Unexpected verification error. Please try again later.");
  }
 }
 
@@ -260,7 +310,10 @@ async function loadPaymentDetails(){
 document.getElementById("paymentForm").addEventListener("submit",async function(e){
  e.preventDefault();
 
- if(!currentUser) return;
+ if(!currentUser||!accountVerified)return;
+
+ const verified=await verifyAccount();
+ if(!verified)return;
 
  const btn=document.getElementById("saveBtn");
  btn.disabled=true;
@@ -311,7 +364,7 @@ document.getElementById("paymentForm").addEventListener("submit",async function(
   }
 
  }catch(error){
-  message("Error: "+error.message,"red");
+  message("An unexpected error occurred: "+error.message,"red");
  }finally{
   btn.disabled=false;
   btn.textContent="Save / Update Bank Details";
