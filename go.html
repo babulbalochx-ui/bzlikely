@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BZlikely | Redirecting</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f6fa;
+  color: #172033;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+  text-align: center;
+}
+.box {
+  background: white;
+  padding: 30px;
+  border-radius: 14px;
+  max-width: 360px;
+  margin: 20px;
+}
+</style>
+</head>
+<body>
+<div class="box">
+  <h2>BZlikely</h2>
+  <p id="message">Please wait. Redirecting...</p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
+
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function redirectVisitor() {
+  const message = document.getElementById("message");
+  const linkId = new URLSearchParams(window.location.search).get("id");
+
+  if (!linkId) {
+    message.textContent = "Invalid tracking link.";
+    return;
+  }
+
+  try {
+    const { data, error } = await db.rpc("track_publisher_link", {
+      p_link_id: linkId
+    });
+
+    if (error) throw error;
+
+    if (!data) {
+      message.textContent = "This link is unavailable.";
+      return;
+    }
+
+    const destination = new URL(data);
+
+    if (!["http:", "https:"].includes(destination.protocol)) {
+      throw new Error("Invalid destination.");
+    }
+
+    message.textContent = "Redirecting you now...";
+    window.location.replace(destination.href);
+
+  } catch (error) {
+    console.error(error);
+    message.textContent = "Unable to open this link. Please try again later.";
+  }
+}
+
+redirectVisitor();
+</script>
+</body>
+</html>
