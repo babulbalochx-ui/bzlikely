@@ -2,77 +2,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Publisher Login | BZlikely</title>
-  <style>
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      padding: 25px 15px;
-      font-family: Arial, sans-serif;
-      background: #f3f6fb;
-      color: #172033;
-    }
-
-    .container {
-      max-width: 420px;
-      margin: 55px auto;
-      padding: 30px;
-      background: white;
-      border-radius: 14px;
-      box-shadow: 0 5px 25px #00000012;
-    }
-
-    h1 { text-align: center; color: #1746a2; }
-    p { text-align: center; color: #657087; }
-
-    label {
-      display: block;
-      margin: 18px 0 7px;
-      font-weight: bold;
-    }
-
-    input {
-      width: 100%;
-      padding: 13px;
-      border: 1px solid #ccd3df;
-      border-radius: 7px;
-      font-size: 16px;
-    }
-
-    button {
-      width: 100%;
-      padding: 14px;
-      margin-top: 22px;
-      background: #1746a2;
-      color: white;
-      border: 0;
-      border-radius: 7px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:disabled { opacity: .6; }
-
-    #message {
-      margin-top: 15px;
-      line-height: 1.5;
-      overflow-wrap: anywhere;
-    }
-
-    .links {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 14px;
-    }
-
-    a { color: #1746a2; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Publisher Login | BZlikely</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;padding:25px 15px;
+  font-family:Arial,sans-serif;
+  background:#f3f6fb;color:#172033
+}
+.container{
+  max-width:420px;margin:55px auto;padding:30px;
+  background:white;border-radius:14px;
+  box-shadow:0 5px 25px #00000012
+}
+h1{text-align:center;color:#1746a2}
+p{text-align:center;color:#657087}
+label{display:block;margin:18px 0 7px;font-weight:bold}
+input{
+  width:100%;padding:13px;border:1px solid #ccd3df;
+  border-radius:7px;font-size:16px
+}
+button{
+  width:100%;padding:14px;margin-top:22px;
+  background:#1746a2;color:white;border:0;
+  border-radius:7px;font-size:16px;font-weight:bold;
+  cursor:pointer
+}
+button:disabled{opacity:.6}
+#message{margin-top:15px;line-height:1.5;overflow-wrap:anywhere}
+.links{text-align:center;margin-top:20px;font-size:14px}
+a{color:#1746a2}
+</style>
 </head>
-
 <body>
 
 <div class="container">
@@ -81,16 +44,13 @@
 
   <form id="loginForm">
     <label>Email Address</label>
-    <input id="email" type="email" required>
+    <input id="email" type="email" required autocomplete="email">
 
     <label>Password</label>
-    <input id="password" type="password" required>
+    <input id="password" type="password" required autocomplete="current-password">
 
-    <button id="loginBtn" type="submit">
-      Login to Account
-    </button>
-
-    <p id="message" role="status"></p>
+    <button id="loginBtn" type="submit">Login to Account</button>
+    <p id="message" role="status" aria-live="polite"></p>
   </form>
 
   <div class="links">
@@ -103,7 +63,7 @@
 
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
-const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
+const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VaQGIXaZ";
 
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
@@ -125,81 +85,77 @@ form.addEventListener("submit", async function(event) {
   const password = document.getElementById("password").value;
 
   try {
-    // Step 1: Login
     const { data, error } =
       await supabaseClient.auth.signInWithPassword({
-        email: email,
-        password: password
+        email,
+        password
       });
 
     if (error) throw error;
 
     const user = data.user;
 
-    // Step 2: Check publisher approval status
     const { data: publisher, error: statusError } =
       await supabaseClient
         .from("publishers")
-        .select("status")
+        .select("status,is_active")
         .eq("id", user.id)
         .maybeSingle();
 
     if (statusError) {
       await supabaseClient.auth.signOut();
-      throw new Error(
-        "Unable to verify account approval. " +
-        statusError.message
-      );
+      throw new Error("Unable to verify account. Please try again.");
     }
 
-    // No publisher record found
     if (!publisher) {
       await supabaseClient.auth.signOut();
       message.textContent =
-        "Publisher record not found. Please contact support.";
+        "Publisher record not found. Please contact BZlikely support.";
+      return;
+    }
+
+    // Check account activation first
+    if (publisher.is_active !== true) {
+      await supabaseClient.auth.signOut();
+      message.textContent =
+        "Your account is currently deactivated. Please contact BZlikely at bzlikelybusiness@gmail.com.";
       return;
     }
 
     const status = (publisher.status || "pending").toLowerCase();
 
-    // Step 3: Pending account
     if (status === "pending") {
       await supabaseClient.auth.signOut();
       message.textContent =
-        "Your account is pending admin approval. " +
-        "You can login after your account is approved.";
+        "Your account is pending admin approval.";
       return;
     }
 
-    // Step 4: Rejected account
     if (status === "rejected") {
       await supabaseClient.auth.signOut();
       message.textContent =
-        "Your publisher application has been rejected. " +
-        "Please contact support.";
+        "Your publisher application has been rejected. Please contact bzlikelybusiness@gmail.com.";
       return;
     }
 
-    // Step 5: Only approved publishers can continue
     if (status === "approved") {
       message.textContent =
-        "Account approved! Opening Publisher Home...";
+        "Account approved and active! Opening Publisher Home...";
 
       window.location.href = "publisher-home.html";
       return;
     }
 
-    // Unknown status
     await supabaseClient.auth.signOut();
     message.textContent =
       "Account status is not recognized. Please contact support.";
 
   } catch (error) {
     message.textContent = "Login error: " + error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = "Login to Account";
   }
-
-  button.disabled = false;
-  button.textContent = "Login to Account";
 });
 </script>
 
