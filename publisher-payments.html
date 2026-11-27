@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Publisher Payments | BZlikely</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033;padding:20px}
@@ -23,11 +24,11 @@ button:disabled{opacity:.6}
 #message{margin-top:12px;font-size:14px;overflow-wrap:anywhere}
 a{color:#1769e0;text-decoration:none}
 #pageContent{display:none}
-#errorBox{display:none;background:#fff0f0;color:#a40000;padding:16px;border-radius:10px;margin-top:20px;overflow-wrap:anywhere}
+#errorBox{display:none;background:#fff0f0;color:#a40000;padding:16px;border-radius:10px;margin-top:20px;white-space:pre-wrap;overflow-wrap:anywhere}
 </style>
 </head>
-<body>
 
+<body>
 <div class="container">
 
 <div class="header">
@@ -87,12 +88,12 @@ a{color:#1769e0;text-decoration:none}
 <div class="card">
 <h3>Payment Verification</h3>
 <p>Current Status: <span class="status" id="paymentStatus">Loading...</span></p>
-<p class="note">Your bank details are private. Other publishers cannot view them. Verification and actual payouts are not active yet.</p>
+<p class="note">Your bank details are private. Verification and actual payouts are not active yet.</p>
 </div>
 
 <div class="card">
 <p class="note">BZlikely Publisher Account</p>
-<button class="logout" onclick="logout()">Logout</button>
+<button class="logout" type="button" onclick="logout()">Logout</button>
 </div>
 
 </div>
@@ -100,16 +101,13 @@ a{color:#1769e0;text-decoration:none}
 
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
+
+/* Apni Supabase ki default Publishable Key yahan lagao */
 const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
 
-const db = supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 let currentUser = null;
-
-function message(text,color){
- document.getElementById("message").textContent=text;
- document.getElementById("message").style.color=color;
-}
 
 function showError(text){
  const box=document.getElementById("errorBox");
@@ -117,11 +115,22 @@ function showError(text){
  box.style.display="block";
 }
 
+function message(text,color){
+ const el=document.getElementById("message");
+ el.textContent=text;
+ el.style.color=color;
+}
+
 async function checkLogin(){
  try{
   const {data,error}=await db.auth.getSession();
 
-  if(error || !data.session){
+  if(error){
+   showError("SESSION ERROR: "+error.message);
+   return;
+  }
+
+  if(!data.session){
    window.location.replace("publisher-login.html");
    return;
   }
@@ -134,25 +143,18 @@ async function checkLogin(){
    .eq("id",currentUser.id)
    .maybeSingle();
 
-  if(profileError || !publisher){
-   const reason=profileError
-    ? profileError.message
-    : "No publisher profile row found for this login.";
+  if(profileError){
+   showError("PUBLISHER VERIFICATION ERROR\n\n"+profileError.message+"\n\nUser ID: "+currentUser.id);
+   return;
+  }
 
-   showError(
-    "PUBLISHER VERIFICATION ERROR\n\n"+
-    reason+
-    "\n\nUser ID: "+currentUser.id+
-    "\n\nPlease share this error with support."
-   );
-
-   currentUser=null;
+  if(!publisher){
+   showError("No publisher profile found.\nUser ID: "+currentUser.id);
    return;
   }
 
   if(publisher.status!=="approved"){
-   showError("Your publisher account is not approved. Current status: "+publisher.status);
-   currentUser=null;
+   showError("Your publisher account is not approved.\nCurrent status: "+publisher.status);
    return;
   }
 
@@ -208,7 +210,6 @@ document.getElementById("paymentForm").addEventListener("submit",async function(
   iban:document.getElementById("iban").value.trim(),
   swift_bic:document.getElementById("swift").value.trim(),
   currency:document.getElementById("currency").value,
-  payment_status:"pending",
   updated_at:new Date().toISOString()
  };
 
@@ -221,33 +222,35 @@ document.getElementById("paymentForm").addEventListener("submit",async function(
 
   if(checkError){
    message("Error: "+checkError.message,"red");
-  }else{
-   let result;
-
-   if(existing){
-    result=await db
-     .from("publisher_payment_methods")
-     .update(paymentData)
-     .eq("publisher_id",currentUser.id);
-   }else{
-    result=await db
-     .from("publisher_payment_methods")
-     .insert(paymentData);
-   }
-
-   if(result.error){
-    message("Save failed: "+result.error.message,"red");
-   }else{
-    message("Bank details saved successfully.","green");
-    await loadPaymentDetails();
-   }
+   return;
   }
+
+  let result;
+
+  if(existing){
+   result=await db
+    .from("publisher_payment_methods")
+    .update(paymentData)
+    .eq("publisher_id",currentUser.id);
+  }else{
+   result=await db
+    .from("publisher_payment_methods")
+    .insert(paymentData);
+  }
+
+  if(result.error){
+   message("Save failed: "+result.error.message,"red");
+  }else{
+   message("Bank details saved successfully.","green");
+   await loadPaymentDetails();
+  }
+
  }catch(error){
   message("Error: "+error.message,"red");
+ }finally{
+  btn.disabled=false;
+  btn.textContent="Save / Update Bank Details";
  }
-
- btn.disabled=false;
- btn.textContent="Update Bank Details";
 });
 
 async function logout(){
