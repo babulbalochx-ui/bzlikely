@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BZlikely Admin Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033;padding:18px}
@@ -15,9 +14,11 @@ header{background:#142b52;color:white;padding:20px;border-radius:13px}
 .card{background:white;padding:18px;border-radius:12px;margin-top:16px;box-shadow:0 2px 10px #0000000b}
 input{width:100%;padding:12px;margin:8px 0;border:1px solid #ccd3df;border-radius:7px}
 button{border:0;padding:11px 15px;border-radius:7px;color:white;cursor:pointer;margin:8px 5px 0 0}
+button:disabled{opacity:.5;cursor:not-allowed}
 .primary{background:#1769df}
 .approve{background:#16834b}
 .reject{background:#d93636}
+.pendingBtn{background:#b77908}
 .logout{background:#555}
 .stats{display:flex;gap:12px;flex-wrap:wrap}
 .stat{flex:1;min-width:110px}
@@ -30,12 +31,12 @@ button{border:0;padding:11px 15px;border-radius:7px;color:white;cursor:pointer;m
 #message{margin-top:12px;color:#1769df;overflow-wrap:anywhere}
 #errorBox{background:#fff0f0;color:#a00000;padding:15px;border-radius:9px;margin-top:15px;overflow-wrap:anywhere}
 .hidden{display:none}
+.paymentControls{border-top:1px solid #dce2eb;margin-top:12px;padding-top:10px}
+.statusText{font-weight:bold;text-transform:capitalize}
 </style>
 </head>
-
 <body>
 <div class="container">
-
 <header>
 <h2>BZlikely Admin Dashboard</h2>
 <p>Company Administration Panel</p>
@@ -54,7 +55,6 @@ button{border:0;padding:11px 15px;border-radius:7px;color:white;cursor:pointer;m
 </div>
 
 <div id="dashboard" class="hidden">
-
 <div class="card stats">
 <div class="stat">
 <p class="small">Total Publishers</p>
@@ -80,21 +80,14 @@ button{border:0;padding:11px 15px;border-radius:7px;color:white;cursor:pointer;m
 <div class="card">
 <button class="logout" onclick="logout()">Logout</button>
 </div>
-
 </div>
 </div>
 
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
-
-/* Apni existing Supabase Publishable Key yahan paste karo */
 const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
 
-const db = window.supabase.createClient(
- SUPABASE_URL,
- SUPABASE_KEY
-);
-
+const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let adminVerified = false;
 
 function showError(title,details) {
@@ -108,36 +101,25 @@ function addLine(parent,label,value) {
  const strong=document.createElement("strong");
  strong.textContent=label+": ";
  para.append(strong,document.createTextNode(
-  value === null || value === undefined || value === ""
-   ? "Not provided"
-   : String(value)
+  value===null || value===undefined || value===""
+   ?"Not provided":String(value)
  ));
  parent.appendChild(para);
 }
 
 async function verifyAdmin(user) {
- const {data,error}=await db
-  .from("admins")
+ const {data,error}=await db.from("admins")
   .select("user_id")
   .eq("user_id",user.id)
   .maybeSingle();
 
- if(error) {
-  throw new Error("Admin verification failed: "+error.message);
- }
-
- if(!data) {
-  throw new Error("This account is not authorized as an admin.");
- }
+ if(error) throw new Error("Admin verification failed: "+error.message);
+ if(!data) throw new Error("This account is not authorized as an admin.");
 
  adminVerified=true;
-
- document.getElementById("adminEmail").textContent=
-  "Logged in: "+user.email;
-
+ document.getElementById("adminEmail").textContent="Logged in: "+user.email;
  document.getElementById("loginSection").classList.add("hidden");
  document.getElementById("dashboard").classList.remove("hidden");
-
  await loadPublishers();
 }
 
@@ -155,10 +137,7 @@ async function adminLogin() {
  btn.disabled=true;
  msg.textContent="Checking admin login...";
 
- const {data,error}=await db.auth.signInWithPassword({
-  email:email,
-  password:password
- });
+ const {data,error}=await db.auth.signInWithPassword({email,password});
 
  if(error) {
   msg.textContent="Login failed: "+error.message;
@@ -178,12 +157,10 @@ async function adminLogin() {
 
 async function start() {
  const {data,error}=await db.auth.getSession();
-
  if(error) {
   showError("Session Error",error.message);
   return;
  }
-
  if(data.session) {
   try {
    await verifyAdmin(data.session.user);
@@ -199,12 +176,10 @@ async function loadPublishers() {
 
  const message=document.getElementById("message");
  const list=document.getElementById("publisherList");
-
  message.textContent="Loading publishers...";
  list.innerHTML="";
 
- const {data,error}=await db
-  .from("publishers")
+ const {data,error}=await db.from("publishers")
   .select("id,full_name,email,country,status,website_or_social,promotion_platform,promotion_method")
   .order("created_at",{ascending:false});
 
@@ -213,15 +188,14 @@ async function loadPublishers() {
   return;
  }
 
- const publishers=data || [];
-
+ const publishers=data||[];
  document.getElementById("total").textContent=publishers.length;
  document.getElementById("pending").textContent=
-  publishers.filter(p=>(p.status || "pending")==="pending").length;
+  publishers.filter(p=>(p.status||"pending")==="pending").length;
  document.getElementById("approved").textContent=
   publishers.filter(p=>p.status==="approved").length;
 
- if(publishers.length===0) {
+ if(!publishers.length) {
   message.textContent="No publishers found.";
   return;
  }
@@ -233,11 +207,8 @@ async function loadPublishers() {
   .select("publisher_id,account_holder_name,bank_name,country,iban,swift_bic,currency,payment_status");
 
  const paymentMap=new Map();
-
  if(!paymentError && payments) {
-  payments.forEach(item=>{
-   paymentMap.set(item.publisher_id,item);
-  });
+  payments.forEach(item=>paymentMap.set(item.publisher_id,item));
  }
 
  publishers.forEach(p=>{
@@ -250,7 +221,7 @@ async function loadPublishers() {
   addLine(box,"Website / Social",p.website_or_social);
   addLine(box,"Promotion Platform",p.promotion_platform);
   addLine(box,"Promotion Method",p.promotion_method);
-  addLine(box,"Publisher Status",p.status || "pending");
+  addLine(box,"Publisher Status",p.status||"pending");
 
   const bankBox=document.createElement("div");
   bankBox.className="bankBox";
@@ -271,7 +242,32 @@ async function loadPublishers() {
     addLine(bankBox,"IBAN / Account Number",payment.iban);
     addLine(bankBox,"SWIFT / BIC",payment.swift_bic);
     addLine(bankBox,"Currency",payment.currency);
-    addLine(bankBox,"Payment Status",payment.payment_status || "pending");
+    addLine(bankBox,"Payment Status",payment.payment_status||"pending");
+
+    const controls=document.createElement("div");
+    controls.className="paymentControls";
+
+    const label=document.createElement("p");
+    label.innerHTML="<strong>Payment Verification</strong>";
+    controls.appendChild(label);
+
+    const pendingBtn=document.createElement("button");
+    pendingBtn.className="pendingBtn";
+    pendingBtn.textContent="Set Pending";
+    pendingBtn.onclick=()=>changePaymentStatus(p.id,"pending");
+
+    const approveBtn=document.createElement("button");
+    approveBtn.className="approve";
+    approveBtn.textContent="Approve Payment Details";
+    approveBtn.onclick=()=>changePaymentStatus(p.id,"approved");
+
+    const rejectBtn=document.createElement("button");
+    rejectBtn.className="reject";
+    rejectBtn.textContent="Reject Payment Details";
+    rejectBtn.onclick=()=>changePaymentStatus(p.id,"rejected");
+
+    controls.append(pendingBtn,approveBtn,rejectBtn);
+    bankBox.appendChild(controls);
    } else {
     addLine(bankBox,"Payment Details","Not submitted yet");
    }
@@ -279,16 +275,16 @@ async function loadPublishers() {
 
   box.appendChild(bankBox);
 
-  if((p.status || "pending")==="pending") {
+  if((p.status||"pending")==="pending") {
    const approve=document.createElement("button");
    approve.className="approve";
-   approve.textContent="Approve";
-   approve.onclick=()=>changeStatus(p.id,"approved");
+   approve.textContent="Approve Publisher";
+   approve.onclick=()=>changePublisherStatus(p.id,"approved");
 
    const reject=document.createElement("button");
    reject.className="reject";
-   reject.textContent="Reject";
-   reject.onclick=()=>changeStatus(p.id,"rejected");
+   reject.textContent="Reject Publisher";
+   reject.onclick=()=>changePublisherStatus(p.id,"rejected");
 
    box.append(approve,reject);
   }
@@ -297,22 +293,41 @@ async function loadPublishers() {
  });
 
  message.textContent=paymentError
-  ?"Publisher list loaded, but bank details could not be loaded."
+  ?"Publisher list loaded, but bank details could not be loaded: "+paymentError.message
   :"Publisher and bank details loaded.";
 }
 
-async function changeStatus(id,status) {
+async function changePaymentStatus(publisherId,status) {
  if(!adminVerified) return;
 
+ if(!confirm("Change payment verification status to "+status+"?")) return;
+
+ const {error}=await db.from("publisher_payment_methods")
+  .update({
+   payment_status:status,
+   updated_at:new Date().toISOString()
+  })
+  .eq("publisher_id",publisherId);
+
+ if(error) {
+  alert("Payment status update failed: "+error.message);
+  return;
+ }
+
+ alert("Payment verification status updated: "+status);
+ await loadPublishers();
+}
+
+async function changePublisherStatus(id,status) {
+ if(!adminVerified) return;
  if(!confirm("Change publisher status to "+status+"?")) return;
 
- const {error}=await db
-  .from("publishers")
+ const {error}=await db.from("publishers")
   .update({status:status})
   .eq("id",id);
 
  if(error) {
-  alert("Update failed: "+error.message);
+  alert("Publisher update failed: "+error.message);
   return;
  }
 
