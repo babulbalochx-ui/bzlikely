@@ -19,13 +19,16 @@ main{padding:18px;max-width:650px;margin:auto}
 h3{margin-top:0}
 .small{font-size:13px;color:#687386;line-height:1.6}
 input{width:100%;padding:13px;border:1px solid #ccd3df;border-radius:9px;margin:7px 0 13px;font-size:15px}
-button{border:0;border-radius:9px;padding:12px 16px;background:#1769df;color:white;font-size:15px;cursor:pointer}
+button{border:0;border-radius:9px;padding:12px 16px;background:#1769df;color:white;font-size:14px;cursor:pointer}
 button:disabled{opacity:.6}
 .link-item{border:1px solid #e2e6ed;border-radius:10px;padding:13px;margin-top:12px;overflow-wrap:anywhere}
 .link-item a{color:#1769df;word-break:break-all}
+.tracking-url{font-size:13px;color:#1769df;overflow-wrap:anywhere;margin:8px 0}
 .delete{background:#d93636;margin-top:10px}
+.copy{background:#16834a;margin-top:8px}
 #message{font-size:14px;margin:12px 0;color:#1769df;line-height:1.5}
 #accountError{color:#a00000;white-space:pre-wrap;overflow-wrap:anywhere}
+.stat{font-size:32px;font-weight:bold;color:#1769df;margin:12px 0}
 nav{position:fixed;bottom:0;left:0;right:0;background:white;display:flex;justify-content:space-around;padding:10px 3px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -2px 12px #00000012}
 nav button{background:white;color:#536078;padding:8px 4px;font-size:12px;flex:1}
 nav button.active{color:#1769df;font-weight:bold}
@@ -47,15 +50,20 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 <div class="card">
 <h3>My Affiliate Links</h3>
 <p class="small">Add and manage your affiliate links.</p>
+
 <label>Product / Link Title</label>
 <input id="linkTitle" placeholder="Example: Walmart Shoes">
+
 <label>Affiliate URL</label>
 <input id="linkUrl" type="url" placeholder="https://example.com/your-link">
+
 <button id="addBtn" onclick="addLink()">Add Link</button>
 <div id="message"></div>
 </div>
+
 <div class="card">
 <h3>Saved Links</h3>
+<p class="small">Copy your BZlikely tracking link and share it with your audience.</p>
 <div id="linkList">Loading links...</div>
 </div>
 </section>
@@ -64,7 +72,12 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 <div class="card">
 <h3>Publisher Dashboard</h3>
 <p>Welcome to your BZlikely publisher account.</p>
-<p class="small">Clicks, conversions and earnings will appear here when tracking is implemented.</p>
+
+<p class="small">Total tracked clicks</p>
+<div class="stat" id="clickCount">Loading...</div>
+
+<p class="small">Clicks recorded through your BZlikely tracking links. Sales and earnings tracking are not yet connected.</p>
+<button onclick="loadClickStats()">Refresh Statistics</button>
 </div>
 </section>
 
@@ -115,7 +128,10 @@ function showTab(id,btn){
  document.getElementById(id).classList.add("active");
  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
  btn.classList.add("active");
+
  if(id==="links") loadLinks();
+ if(id==="dashboard") loadClickStats();
+
  window.scrollTo(0,0);
 }
 
@@ -195,6 +211,22 @@ async function start(){
  await loadLinks();
 }
 
+function makeTrackingUrl(linkId){
+ const url=new URL("go.html",window.location.href);
+ url.searchParams.set("id",linkId);
+ return url.href;
+}
+
+async function copyTrackingLink(url,button){
+ try{
+  await navigator.clipboard.writeText(url);
+  button.textContent="Copied!";
+  setTimeout(()=>button.textContent="Copy Tracking Link",2000);
+ }catch(error){
+  alert("Copy failed. Please copy this link manually:\n"+url);
+ }
+}
+
 async function addLink(){
  if(!currentUser)return;
 
@@ -267,20 +299,69 @@ async function loadLinks(){
   const heading=document.createElement("strong");
   heading.textContent=item.title;
 
+  const originalLabel=document.createElement("p");
+  originalLabel.className="small";
+  originalLabel.textContent="Original affiliate URL:";
+
   const anchor=document.createElement("a");
   anchor.href=item.affiliate_url;
   anchor.target="_blank";
   anchor.rel="noopener noreferrer";
   anchor.textContent=item.affiliate_url;
 
+  const trackingLabel=document.createElement("p");
+  trackingLabel.className="small";
+  trackingLabel.textContent="Your BZlikely tracking URL:";
+
+  const trackingUrl=makeTrackingUrl(item.id);
+
+  const trackingText=document.createElement("div");
+  trackingText.className="tracking-url";
+  trackingText.textContent=trackingUrl;
+
+  const copy=document.createElement("button");
+  copy.className="copy";
+  copy.textContent="Copy Tracking Link";
+  copy.onclick=()=>copyTrackingLink(trackingUrl,copy);
+
   const del=document.createElement("button");
   del.className="delete";
   del.textContent="Delete";
   del.onclick=()=>deleteLink(item.id);
 
-  box.append(heading,document.createElement("br"),anchor,document.createElement("br"),del);
+  box.append(
+   heading,
+   originalLabel,
+   anchor,
+   trackingLabel,
+   trackingText,
+   copy,
+   document.createElement("br"),
+   del
+  );
+
   list.appendChild(box);
  });
+}
+
+async function loadClickStats(){
+ if(!currentUser)return;
+
+ const countElement=document.getElementById("clickCount");
+ countElement.textContent="Loading...";
+
+ const {count,error}=await db
+  .from("publisher_clicks")
+  .select("id",{count:"exact",head:true})
+  .eq("publisher_id",currentUser.id);
+
+ if(error){
+  countElement.textContent="Unavailable";
+  console.error("Click statistics error:",error.message);
+  return;
+ }
+
+ countElement.textContent=count||0;
 }
 
 async function deleteLink(id){
