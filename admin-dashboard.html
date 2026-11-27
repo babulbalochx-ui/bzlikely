@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BZlikely Admin Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033;padding:18px}
@@ -23,12 +24,15 @@ button{border:0;padding:11px 15px;border-radius:7px;color:white;cursor:pointer;m
 .stat h2{font-size:27px;margin:8px 0}
 .publisher{border:1px solid #e1e6ee;border-radius:10px;padding:14px;margin-top:12px;overflow-wrap:anywhere}
 .publisher p{margin:7px 0}
+.bankBox{background:#f3f6fb;border-radius:9px;padding:13px;margin-top:14px}
+.bankBox h4{margin:3px 0 12px}
 .small{font-size:13px;color:#687386}
 #message{margin-top:12px;color:#1769df;overflow-wrap:anywhere}
 #errorBox{background:#fff0f0;color:#a00000;padding:15px;border-radius:9px;margin-top:15px;overflow-wrap:anywhere}
 .hidden{display:none}
 </style>
 </head>
+
 <body>
 <div class="container">
 
@@ -82,72 +86,83 @@ button{border:0;padding:11px 15px;border-radius:7px;color:white;cursor:pointer;m
 
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
+
+/* Apni existing Supabase Publishable Key yahan paste karo */
 const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
 
 const db = window.supabase.createClient(
-SUPABASE_URL,
-SUPABASE_KEY
+ SUPABASE_URL,
+ SUPABASE_KEY
 );
 
 let adminVerified = false;
 
-function showError(title, details) {
- const box = document.getElementById("errorBox");
+function showError(title,details) {
+ const box=document.getElementById("errorBox");
  box.classList.remove("hidden");
- box.innerHTML = "";
- const h = document.createElement("h3");
- h.textContent = title;
- const p = document.createElement("p");
- p.textContent = details;
- box.append(h,p);
+ box.textContent=title+"\n"+details;
+}
+
+function addLine(parent,label,value) {
+ const para=document.createElement("p");
+ const strong=document.createElement("strong");
+ strong.textContent=label+": ";
+ para.append(strong,document.createTextNode(
+  value === null || value === undefined || value === ""
+   ? "Not provided"
+   : String(value)
+ ));
+ parent.appendChild(para);
 }
 
 async function verifyAdmin(user) {
- const {data, error} = await db
+ const {data,error}=await db
   .from("admins")
   .select("user_id")
-  .eq("user_id", user.id)
+  .eq("user_id",user.id)
   .maybeSingle();
 
  if(error) {
-  throw new Error("Admin verification failed: " + error.message);
+  throw new Error("Admin verification failed: "+error.message);
  }
 
  if(!data) {
   throw new Error("This account is not authorized as an admin.");
  }
 
- adminVerified = true;
- document.getElementById("adminEmail").textContent =
-  "Logged in: " + user.email;
+ adminVerified=true;
+
+ document.getElementById("adminEmail").textContent=
+  "Logged in: "+user.email;
 
  document.getElementById("loginSection").classList.add("hidden");
  document.getElementById("dashboard").classList.remove("hidden");
+
  await loadPublishers();
 }
 
 async function adminLogin() {
- const email = document.getElementById("email").value.trim();
- const password = document.getElementById("password").value;
- const msg = document.getElementById("loginMessage");
- const btn = document.getElementById("loginButton");
+ const email=document.getElementById("email").value.trim();
+ const password=document.getElementById("password").value;
+ const msg=document.getElementById("loginMessage");
+ const btn=document.getElementById("loginButton");
 
  if(!email || !password) {
-  msg.textContent = "Please enter email and password.";
+  msg.textContent="Please enter email and password.";
   return;
  }
 
- btn.disabled = true;
- msg.textContent = "Checking admin login...";
+ btn.disabled=true;
+ msg.textContent="Checking admin login...";
 
- const {data, error} = await db.auth.signInWithPassword({
-  email: email,
-  password: password
+ const {data,error}=await db.auth.signInWithPassword({
+  email:email,
+  password:password
  });
 
  if(error) {
-  msg.textContent = "Login failed: " + error.message;
-  btn.disabled = false;
+  msg.textContent="Login failed: "+error.message;
+  btn.disabled=false;
   return;
  }
 
@@ -155,17 +170,17 @@ async function adminLogin() {
   await verifyAdmin(data.user);
  } catch(err) {
   await db.auth.signOut();
-  adminVerified = false;
-  msg.textContent = err.message;
-  btn.disabled = false;
+  adminVerified=false;
+  msg.textContent=err.message;
+  btn.disabled=false;
  }
 }
 
 async function start() {
- const {data, error} = await db.auth.getSession();
+ const {data,error}=await db.auth.getSession();
 
  if(error) {
-  showError("Session Error", error.message);
+  showError("Session Error",error.message);
   return;
  }
 
@@ -174,7 +189,7 @@ async function start() {
    await verifyAdmin(data.session.user);
   } catch(err) {
    await db.auth.signOut();
-   showError("Admin Access Denied", err.message);
+   showError("Admin Access Denied",err.message);
   }
  }
 }
@@ -182,97 +197,132 @@ async function start() {
 async function loadPublishers() {
  if(!adminVerified) return;
 
- const message = document.getElementById("message");
- const list = document.getElementById("publisherList");
+ const message=document.getElementById("message");
+ const list=document.getElementById("publisherList");
 
- message.textContent = "Loading publishers...";
- list.innerHTML = "";
+ message.textContent="Loading publishers...";
+ list.innerHTML="";
 
- const {data, error} = await db
+ const {data,error}=await db
   .from("publishers")
   .select("id,full_name,email,country,status,website_or_social,promotion_platform,promotion_method")
-  .order("created_at", {ascending:false});
+  .order("created_at",{ascending:false});
 
  if(error) {
-  message.textContent = "Publisher Error: " + error.message;
+  message.textContent="Publisher Error: "+error.message;
   return;
  }
 
- const publishers = data || [];
+ const publishers=data || [];
 
- document.getElementById("total").textContent = publishers.length;
- document.getElementById("pending").textContent =
-  publishers.filter(p => (p.status || "pending") === "pending").length;
- document.getElementById("approved").textContent =
-  publishers.filter(p => p.status === "approved").length;
+ document.getElementById("total").textContent=publishers.length;
+ document.getElementById("pending").textContent=
+  publishers.filter(p=>(p.status || "pending")==="pending").length;
+ document.getElementById("approved").textContent=
+  publishers.filter(p=>p.status==="approved").length;
 
- if(publishers.length === 0) {
-  message.textContent = "No publishers found.";
+ if(publishers.length===0) {
+  message.textContent="No publishers found.";
   return;
  }
 
- message.textContent = "Publisher list loaded.";
+ message.textContent="Loading bank details...";
 
- publishers.forEach(p => {
-  const box = document.createElement("div");
-  box.className = "publisher";
+ const {data:payments,error:paymentError}=await db
+  .from("publisher_payment_methods")
+  .select("publisher_id,account_holder_name,bank_name,country,iban,swift_bic,currency,payment_status");
 
-  function addLine(label, value) {
-   const para = document.createElement("p");
-   const strong = document.createElement("strong");
-   strong.textContent = label + ": ";
-   para.append(strong, document.createTextNode(value || "Not provided"));
-   box.appendChild(para);
+ const paymentMap=new Map();
+
+ if(!paymentError && payments) {
+  payments.forEach(item=>{
+   paymentMap.set(item.publisher_id,item);
+  });
+ }
+
+ publishers.forEach(p=>{
+  const box=document.createElement("div");
+  box.className="publisher";
+
+  addLine(box,"Name",p.full_name);
+  addLine(box,"Email",p.email);
+  addLine(box,"Country",p.country);
+  addLine(box,"Website / Social",p.website_or_social);
+  addLine(box,"Promotion Platform",p.promotion_platform);
+  addLine(box,"Promotion Method",p.promotion_method);
+  addLine(box,"Publisher Status",p.status || "pending");
+
+  const bankBox=document.createElement("div");
+  bankBox.className="bankBox";
+
+  const heading=document.createElement("h4");
+  heading.textContent="Bank Account Details";
+  bankBox.appendChild(heading);
+
+  if(paymentError) {
+   addLine(bankBox,"Bank Details Error",paymentError.message);
+  } else {
+   const payment=paymentMap.get(p.id);
+
+   if(payment) {
+    addLine(bankBox,"Account Holder",payment.account_holder_name);
+    addLine(bankBox,"Bank Name",payment.bank_name);
+    addLine(bankBox,"Bank Country",payment.country);
+    addLine(bankBox,"IBAN / Account Number",payment.iban);
+    addLine(bankBox,"SWIFT / BIC",payment.swift_bic);
+    addLine(bankBox,"Currency",payment.currency);
+    addLine(bankBox,"Payment Status",payment.payment_status || "pending");
+   } else {
+    addLine(bankBox,"Payment Details","Not submitted yet");
+   }
   }
 
-  addLine("Name", p.full_name);
-  addLine("Email", p.email);
-  addLine("Country", p.country);
-  addLine("Website / Social", p.website_or_social);
-  addLine("Promotion Platform", p.promotion_platform);
-  addLine("Promotion Method", p.promotion_method);
-  addLine("Status", p.status || "pending");
+  box.appendChild(bankBox);
 
-  if((p.status || "pending") === "pending") {
-   const approve = document.createElement("button");
-   approve.className = "approve";
-   approve.textContent = "Approve";
-   approve.onclick = () => changeStatus(p.id, "approved");
+  if((p.status || "pending")==="pending") {
+   const approve=document.createElement("button");
+   approve.className="approve";
+   approve.textContent="Approve";
+   approve.onclick=()=>changeStatus(p.id,"approved");
 
-   const reject = document.createElement("button");
-   reject.className = "reject";
-   reject.textContent = "Reject";
-   reject.onclick = () => changeStatus(p.id, "rejected");
+   const reject=document.createElement("button");
+   reject.className="reject";
+   reject.textContent="Reject";
+   reject.onclick=()=>changeStatus(p.id,"rejected");
 
-   box.append(approve, reject);
+   box.append(approve,reject);
   }
 
   list.appendChild(box);
  });
+
+ message.textContent=paymentError
+  ?"Publisher list loaded, but bank details could not be loaded."
+  :"Publisher and bank details loaded.";
 }
 
-async function changeStatus(id, status) {
+async function changeStatus(id,status) {
  if(!adminVerified) return;
 
- if(!confirm("Change publisher status to " + status + "?")) return;
+ if(!confirm("Change publisher status to "+status+"?")) return;
 
- const {error} = await db
+ const {error}=await db
   .from("publishers")
   .update({status:status})
-  .eq("id", id);
+  .eq("id",id);
 
  if(error) {
-  alert("Update failed: " + error.message);
+  alert("Update failed: "+error.message);
   return;
  }
 
- alert("Publisher status updated: " + status);
+ alert("Publisher status updated: "+status);
  await loadPublishers();
 }
 
 async function logout() {
  await db.auth.signOut();
- adminVerified = false;
+ adminVerified=false;
  location.reload();
 }
 
