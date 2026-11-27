@@ -6,82 +6,85 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Publisher Payments | BZlikely</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 *{box-sizing:border-box}
-body{
-  margin:0;
-  background:#f3f6fb;
-  font-family:Arial,sans-serif;
-  color:#172033;
-  padding:20px;
-  visibility:hidden;
-}
+body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033;padding:20px}
 .container{max-width:650px;margin:auto}
 .header{display:flex;justify-content:space-between;align-items:center}
+.card{background:white;padding:20px;border-radius:14px;margin-top:18px;box-shadow:0 2px 10px #0000000d}
 h2{margin:10px 0}
-.card{
-  background:white;
-  padding:20px;
-  border-radius:14px;
-  margin-top:18px;
-  box-shadow:0 2px 10px #0000000d
-}
-.amount{font-size:30px;font-weight:bold;margin:12px 0;color:#176b45}
+label{display:block;font-size:14px;font-weight:bold;margin-top:15px}
+input,select{width:100%;padding:12px;margin-top:7px;border:1px solid #d0d5dd;border-radius:8px;font-size:15px;background:white}
+button{border:0;background:#1769e0;color:white;padding:12px 16px;border-radius:8px;cursor:pointer;margin-top:16px;width:100%;font-size:15px}
+.logout{background:#667085}
 .note{color:#667085;font-size:13px;line-height:1.5}
-.status{
-  background:#fff4d6;
-  color:#875900;
-  padding:7px 12px;
-  border-radius:20px;
-  font-size:12px;
-  display:inline-block
-}
-button{
-  border:0;
-  background:#1769e0;
-  color:white;
-  padding:12px 16px;
-  border-radius:8px;
-  cursor:pointer;
-  margin-top:12px
-}
+.status{display:inline-block;background:#fff4d6;color:#875900;padding:7px 12px;border-radius:20px;font-size:12px}
+#message{margin-top:12px;font-size:14px}
 a{color:#1769e0;text-decoration:none}
 </style>
 </head>
-
 <body>
 <div class="container">
 
-  <div class="header">
-    <h2>BZlikely Payments</h2>
-    <a href="publisher-home.html">← Home</a>
-  </div>
+<div class="header">
+<h2>BZlikely Payments</h2>
+<a href="publisher-home.html">← Home</a>
+</div>
 
-  <div class="card">
-    <p class="note">TOTAL EARNINGS</p>
-    <div class="amount">$0.00</div>
-    <p class="note">Your confirmed earnings will appear here.</p>
-  </div>
+<div class="card">
+<h3>Bank Account Details</h3>
+<p class="note">Add your bank information for future publisher payouts.</p>
 
-  <div class="card">
-    <h3>Payment Information</h3>
-    <p>Payment Method: <b>Not set</b></p>
-    <p>Payment Status: <span class="status">Not available</span></p>
-    <p class="note">
-      Payment setup will be available after BZlikely activates its publisher payment system.
-    </p>
-  </div>
+<form id="paymentForm">
+<label>Account Holder Name</label>
+<input id="holder" type="text" required placeholder="Name as shown on bank account">
 
-  <div class="card">
-    <h3>Payment History</h3>
-    <p class="note">No payment records available yet.</p>
-  </div>
+<label>Bank Name</label>
+<input id="bank" type="text" required placeholder="Enter bank name">
 
-  <div class="card">
-    <p class="note">BZlikely Publisher Account</p>
-    <button onclick="logout()">Logout</button>
-  </div>
+<label>Country</label>
+<select id="country" required>
+<option value="">Select country</option>
+<option>Pakistan</option>
+<option>United States</option>
+<option>United Kingdom</option>
+<option>United Arab Emirates</option>
+<option>India</option>
+<option>Canada</option>
+<option>Australia</option>
+<option>Other</option>
+</select>
+
+<label>IBAN / Account Number</label>
+<input id="iban" type="text" required placeholder="Enter IBAN or account number" autocomplete="off">
+
+<label>SWIFT / BIC Code</label>
+<input id="swift" type="text" placeholder="Enter SWIFT/BIC code">
+
+<label>Currency</label>
+<select id="currency">
+<option value="USD">USD</option>
+<option value="PKR">PKR</option>
+<option value="GBP">GBP</option>
+<option value="EUR">EUR</option>
+<option value="AED">AED</option>
+</select>
+
+<button type="submit" id="saveBtn">Save Bank Details</button>
+<div id="message"></div>
+</form>
+</div>
+
+<div class="card">
+<h3>Payment Verification</h3>
+<p>Current Status: <span class="status" id="paymentStatus">Loading...</span></p>
+<p class="note">Your bank details are private. Other publishers cannot view them. Verification and actual payouts are not active yet.</p>
+</div>
+
+<div class="card">
+<p class="note">BZlikely Publisher Account</p>
+<button class="logout" onclick="logout()">Logout</button>
+</div>
 
 </div>
 
@@ -89,53 +92,133 @@ a{color:#1769e0;text-decoration:none}
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXa";
 
-const supabaseClient = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+const db = supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-async function checkLogin(){
-  const {data,error} = await supabaseClient.auth.getSession();
+let currentUser = null;
 
-  if(error || !data.session){
-    window.location.replace("publisher-login.html");
-    return;
-  }
-
-  const user = data.session.user;
-
-  const {data:publisher,error:profileError} = await supabaseClient
-    .from("publishers")
-    .select("status")
-    .eq("id",user.id)
-    .maybeSingle();
-
-  if(profileError || !publisher){
-    await supabaseClient.auth.signOut();
-    alert("Unable to verify your publisher account. Please login again.");
-    window.location.replace("publisher-login.html");
-    return;
-  }
-
-  if(publisher.status !== "approved"){
-    await supabaseClient.auth.signOut();
-
-    if(publisher.status === "pending"){
-      alert("Your account is pending admin approval.");
-    }else{
-      alert("Your publisher account is not approved.");
-    }
-
-    window.location.replace("publisher-login.html");
-    return;
-  }
-
-  document.body.style.visibility = "visible";
+function message(text,color){
+ document.getElementById("message").textContent=text;
+ document.getElementById("message").style.color=color;
 }
 
-async function logout(){
-  await supabaseClient.auth.signOut();
+async function checkLogin(){
+ const {data,error}=await db.auth.getSession();
+
+ if(error || !data.session){
   window.location.replace("publisher-login.html");
+  return;
+ }
+
+ currentUser=data.session.user;
+
+ const {data:publisher,error:profileError}=await db
+  .from("publishers")
+  .select("status")
+  .eq("id",currentUser.id)
+  .maybeSingle();
+
+ if(profileError || !publisher){
+  await db.auth.signOut();
+  alert("Unable to verify publisher account. Please login again.");
+  window.location.replace("publisher-login.html");
+  return;
+ }
+
+ if(publisher.status!=="approved"){
+  await db.auth.signOut();
+  alert("Your publisher account is not approved.");
+  window.location.replace("publisher-login.html");
+  return;
+ }
+
+ await loadPaymentDetails();
+}
+
+async function loadPaymentDetails(){
+ const {data,error}=await db
+  .from("publisher_payment_methods")
+  .select("*")
+  .eq("publisher_id",currentUser.id)
+  .maybeSingle();
+
+ if(error){
+  message("Unable to load bank details: "+error.message,"red");
+  return;
+ }
+
+ if(data){
+  document.getElementById("holder").value=data.account_holder_name || "";
+  document.getElementById("bank").value=data.bank_name || "";
+  document.getElementById("country").value=data.country || "";
+  document.getElementById("iban").value=data.iban || "";
+  document.getElementById("swift").value=data.swift_bic || "";
+  document.getElementById("currency").value=data.currency || "USD";
+  document.getElementById("paymentStatus").textContent=data.payment_status || "pending";
+  document.getElementById("saveBtn").textContent="Update Bank Details";
+ }else{
+  document.getElementById("paymentStatus").textContent="Not submitted";
+ }
+}
+
+document.getElementById("paymentForm").addEventListener("submit",async function(e){
+ e.preventDefault();
+
+ if(!currentUser) return;
+
+ const btn=document.getElementById("saveBtn");
+ btn.disabled=true;
+ btn.textContent="Saving...";
+ message("","");
+
+ const paymentData={
+  publisher_id:currentUser.id,
+  account_holder_name:document.getElementById("holder").value.trim(),
+  bank_name:document.getElementById("bank").value.trim(),
+  country:document.getElementById("country").value,
+  iban:document.getElementById("iban").value.trim(),
+  swift_bic:document.getElementById("swift").value.trim(),
+  currency:document.getElementById("currency").value,
+  payment_status:"pending",
+  updated_at:new Date().toISOString()
+ };
+
+ const {data:existing,error:checkError}=await db
+  .from("publisher_payment_methods")
+  .select("id")
+  .eq("publisher_id",currentUser.id)
+  .maybeSingle();
+
+ if(checkError){
+  message("Error: "+checkError.message,"red");
+ }else{
+  let result;
+
+  if(existing){
+   result=await db
+    .from("publisher_payment_methods")
+    .update(paymentData)
+    .eq("publisher_id",currentUser.id);
+  }else{
+   result=await db
+    .from("publisher_payment_methods")
+    .insert(paymentData);
+  }
+
+  if(result.error){
+   message("Save failed: "+result.error.message,"red");
+  }else{
+   message("Bank details saved successfully.","green");
+   await loadPaymentDetails();
+  }
+ }
+
+ btn.disabled=false;
+ btn.textContent="Update Bank Details";
+});
+
+async function logout(){
+ await db.auth.signOut();
+ window.location.replace("publisher-login.html");
 }
 
 checkLogin();
