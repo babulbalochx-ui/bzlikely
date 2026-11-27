@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BZlikely Admin Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033;padding:18px}
@@ -20,6 +21,8 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .approve{background:#16834b}
 .reject{background:#d93636}
 .pendingBtn{background:#b77908}
+.deactivate{background:#a83232}
+.activate{background:#16834b}
 .logout{background:#555}
 .stats{display:flex;gap:12px;flex-wrap:wrap}
 .stat{flex:1;min-width:110px}
@@ -32,14 +35,16 @@ button:disabled{opacity:.5;cursor:not-allowed}
 #message{margin-top:12px;color:#1769df;overflow-wrap:anywhere}
 #errorBox{background:#fff0f0;color:#a00000;padding:15px;border-radius:9px;margin-top:15px;overflow-wrap:anywhere;white-space:pre-wrap}
 .hidden{display:none}
-.paymentControls{border-top:1px solid #dce2eb;margin-top:12px;padding-top:10px}
-.statusText{font-weight:bold;text-transform:capitalize}
+.paymentControls,.publisherControls{border-top:1px solid #dce2eb;margin-top:12px;padding-top:10px}
 .reasonBox{background:#fff8e8;border:1px solid #ead9a7;padding:12px;border-radius:8px;margin-top:12px}
 .reasonBox label{font-weight:bold}
+.statusText{font-weight:bold;text-transform:capitalize}
 </style>
 </head>
+
 <body>
 <div class="container">
+
 <header>
 <h2>BZlikely Admin Dashboard</h2>
 <p>Company Administration Panel</p>
@@ -58,6 +63,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </div>
 
 <div id="dashboard" class="hidden">
+
 <div class="card stats">
 <div class="stat">
 <p class="small">Total Publishers</p>
@@ -83,56 +89,67 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <div class="card">
 <button class="logout" onclick="logout()">Logout</button>
 </div>
+
 </div>
 </div>
 
 <script>
-const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
-const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
+const SUPABASE_URL="https://acnpjyluvhvckrncqkyz.supabase.co";
+const SUPABASE_KEY="sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VaGIXaZ";
 
-const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let adminVerified = false;
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-function showError(title,details) {
+let adminVerified=false;
+
+function showError(title,details){
  const box=document.getElementById("errorBox");
  box.classList.remove("hidden");
  box.textContent=title+"\n"+details;
 }
 
-function addLine(parent,label,value) {
+function addLine(parent,label,value){
  const para=document.createElement("p");
  const strong=document.createElement("strong");
+
  strong.textContent=label+": ";
- para.append(strong,document.createTextNode(
-  value===null || value===undefined || value===""
+
+ para.append(
+  strong,
+  document.createTextNode(
+   value===null||value===undefined||value===""
    ?"Not provided":String(value)
- ));
+  )
+ );
+
  parent.appendChild(para);
 }
 
-async function verifyAdmin(user) {
+async function verifyAdmin(user){
  const {data,error}=await db.from("admins")
   .select("user_id")
   .eq("user_id",user.id)
   .maybeSingle();
 
  if(error) throw new Error("Admin verification failed: "+error.message);
+
  if(!data) throw new Error("This account is not authorized as an admin.");
 
  adminVerified=true;
+
  document.getElementById("adminEmail").textContent="Logged in: "+user.email;
  document.getElementById("loginSection").classList.add("hidden");
  document.getElementById("dashboard").classList.remove("hidden");
+
  await loadPublishers();
 }
 
-async function adminLogin() {
+async function adminLogin(){
  const email=document.getElementById("email").value.trim();
  const password=document.getElementById("password").value;
  const msg=document.getElementById("loginMessage");
  const btn=document.getElementById("loginButton");
 
- if(!email || !password) {
+ if(!email||!password){
   msg.textContent="Please enter email and password.";
   return;
  }
@@ -142,15 +159,15 @@ async function adminLogin() {
 
  const {data,error}=await db.auth.signInWithPassword({email,password});
 
- if(error) {
+ if(error){
   msg.textContent="Login failed: "+error.message;
   btn.disabled=false;
   return;
  }
 
- try {
+ try{
   await verifyAdmin(data.user);
- } catch(err) {
+ }catch(err){
   await db.auth.signOut();
   adminVerified=false;
   msg.textContent=err.message;
@@ -158,47 +175,53 @@ async function adminLogin() {
  }
 }
 
-async function start() {
+async function start(){
  const {data,error}=await db.auth.getSession();
- if(error) {
+
+ if(error){
   showError("Session Error",error.message);
   return;
  }
- if(data.session) {
-  try {
+
+ if(data.session){
+  try{
    await verifyAdmin(data.session.user);
-  } catch(err) {
+  }catch(err){
    await db.auth.signOut();
    showError("Admin Access Denied",err.message);
   }
  }
 }
 
-async function loadPublishers() {
+async function loadPublishers(){
  if(!adminVerified) return;
 
  const message=document.getElementById("message");
  const list=document.getElementById("publisherList");
+
  message.textContent="Loading publishers...";
  list.innerHTML="";
 
  const {data,error}=await db.from("publishers")
-  .select("id,full_name,email,country,status,website_or_social,promotion_platform,promotion_method")
+  .select("id,full_name,email,country,status,is_active,website_or_social,promotion_platform,promotion_method")
   .order("created_at",{ascending:false});
 
- if(error) {
+ if(error){
   message.textContent="Publisher Error: "+error.message;
   return;
  }
 
  const publishers=data||[];
+
  document.getElementById("total").textContent=publishers.length;
+
  document.getElementById("pending").textContent=
   publishers.filter(p=>(p.status||"pending")==="pending").length;
+
  document.getElementById("approved").textContent=
   publishers.filter(p=>p.status==="approved").length;
 
- if(!publishers.length) {
+ if(!publishers.length){
   message.textContent="No publishers found.";
   return;
  }
@@ -210,7 +233,8 @@ async function loadPublishers() {
   .select("publisher_id,account_holder_name,bank_name,country,iban,swift_bic,currency,payment_status,rejection_reason");
 
  const paymentMap=new Map();
- if(!paymentError && payments) {
+
+ if(!paymentError&&payments){
   payments.forEach(item=>paymentMap.set(item.publisher_id,item));
  }
 
@@ -225,6 +249,9 @@ async function loadPublishers() {
   addLine(box,"Promotion Platform",p.promotion_platform);
   addLine(box,"Promotion Method",p.promotion_method);
   addLine(box,"Publisher Status",p.status||"pending");
+  addLine(box,"Account Active",p.is_active?"Yes":"No");
+
+  // BANK DETAILS
 
   const bankBox=document.createElement("div");
   bankBox.className="bankBox";
@@ -233,12 +260,12 @@ async function loadPublishers() {
   heading.textContent="Bank Account Details";
   bankBox.appendChild(heading);
 
-  if(paymentError) {
+  if(paymentError){
    addLine(bankBox,"Bank Details Error",paymentError.message);
-  } else {
+  }else{
    const payment=paymentMap.get(p.id);
 
-   if(payment) {
+   if(payment){
     addLine(bankBox,"Account Holder",payment.account_holder_name);
     addLine(bankBox,"Bank Name",payment.bank_name);
     addLine(bankBox,"Bank Country",payment.country);
@@ -247,15 +274,15 @@ async function loadPublishers() {
     addLine(bankBox,"Currency",payment.currency);
     addLine(bankBox,"Payment Status",payment.payment_status||"pending");
 
-    if(payment.rejection_reason) {
-     addLine(bankBox,"Previous Rejection Reason",payment.rejection_reason);
+    if(payment.rejection_reason){
+     addLine(bankBox,"Rejection Reason",payment.rejection_reason);
     }
 
     const controls=document.createElement("div");
     controls.className="paymentControls";
 
     const label=document.createElement("p");
-    label.innerHTML="<strong>Payment Verification</strong>";
+    label.textContent="Payment Verification";
     controls.appendChild(label);
 
     const reasonBox=document.createElement("div");
@@ -289,27 +316,56 @@ async function loadPublishers() {
 
     controls.append(pendingBtn,approveBtn,rejectBtn);
     bankBox.appendChild(controls);
-   } else {
+
+   }else{
     addLine(bankBox,"Payment Details","Not submitted yet");
    }
   }
 
   box.appendChild(bankBox);
 
-  if((p.status||"pending")==="pending") {
-   const approve=document.createElement("button");
-   approve.className="approve";
-   approve.textContent="Approve Publisher";
-   approve.onclick=()=>changePublisherStatus(p.id,"approved");
+  // PUBLISHER MANAGEMENT CONTROLS
 
-   const reject=document.createElement("button");
-   reject.className="reject";
-   reject.textContent="Reject Publisher";
-   reject.onclick=()=>changePublisherStatus(p.id,"rejected");
+  const publisherControls=document.createElement("div");
+  publisherControls.className="publisherControls";
 
-   box.append(approve,reject);
+  const controlTitle=document.createElement("p");
+  controlTitle.textContent="Publisher Account Management";
+  publisherControls.appendChild(controlTitle);
+
+  // APPROVE BUTTON - available for every status
+
+  const approve=document.createElement("button");
+  approve.className="approve";
+  approve.textContent="Approve Publisher";
+  approve.onclick=()=>changePublisherStatus(p.id,"approved");
+  publisherControls.appendChild(approve);
+
+  // REJECT BUTTON - available for every status
+
+  const reject=document.createElement("button");
+  reject.className="reject";
+  reject.textContent="Reject Publisher";
+  reject.onclick=()=>changePublisherStatus(p.id,"rejected");
+  publisherControls.appendChild(reject);
+
+  // DEACTIVATE OR REACTIVATE
+
+  if(p.is_active){
+   const deactivate=document.createElement("button");
+   deactivate.className="deactivate";
+   deactivate.textContent="Deactivate Account";
+   deactivate.onclick=()=>changePublisherActive(p.id,false);
+   publisherControls.appendChild(deactivate);
+  }else{
+   const activate=document.createElement("button");
+   activate.className="activate";
+   activate.textContent="Reactivate Account";
+   activate.onclick=()=>changePublisherActive(p.id,true);
+   publisherControls.appendChild(activate);
   }
 
+  box.appendChild(publisherControls);
   list.appendChild(box);
  });
 
@@ -318,12 +374,12 @@ async function loadPublishers() {
   :"Publisher and bank details loaded.";
 }
 
-async function changePaymentStatus(publisherId,status,reason) {
+async function changePaymentStatus(publisherId,status,reason){
  if(!adminVerified) return;
 
  const cleanReason=(reason||"").trim();
 
- if(status==="rejected" && !cleanReason) {
+ if(status==="rejected"&&!cleanReason){
   alert("Please write a rejection reason before rejecting bank details.");
   return;
  }
@@ -338,7 +394,7 @@ async function changePaymentStatus(publisherId,status,reason) {
   })
   .eq("publisher_id",publisherId);
 
- if(error) {
+ if(error){
   alert("Payment status update failed: "+error.message);
   return;
  }
@@ -347,15 +403,20 @@ async function changePaymentStatus(publisherId,status,reason) {
  await loadPublishers();
 }
 
-async function changePublisherStatus(id,status) {
+async function changePublisherStatus(id,status){
  if(!adminVerified) return;
- if(!confirm("Change publisher status to "+status+"?")) return;
+
+ const warning=status==="rejected"
+  ?"Reject this publisher? Their tracking links will stop working."
+  :"Approve this publisher?";
+
+ if(!confirm(warning)) return;
 
  const {error}=await db.from("publishers")
   .update({status:status})
   .eq("id",id);
 
- if(error) {
+ if(error){
   alert("Publisher update failed: "+error.message);
   return;
  }
@@ -364,7 +425,29 @@ async function changePublisherStatus(id,status) {
  await loadPublishers();
 }
 
-async function logout() {
+async function changePublisherActive(id,active){
+ if(!adminVerified) return;
+
+ const action=active?"reactivate":"deactivate";
+
+ if(!confirm("Are you sure you want to "+action+" this publisher account?")){
+  return;
+ }
+
+ const {error}=await db.from("publishers")
+  .update({is_active:active})
+  .eq("id",id);
+
+ if(error){
+  alert("Account "+action+" failed: "+error.message);
+  return;
+ }
+
+ alert("Publisher account "+(active?"reactivated":"deactivated")+" successfully.");
+ await loadPublishers();
+}
+
+async function logout(){
  await db.auth.signOut();
  adminVerified=false;
  location.reload();
