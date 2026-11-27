@@ -11,7 +11,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033;padding:20px}
 .container{max-width:650px;margin:auto}
-.header{display:flex;justify-content:space-between;align-items:center}
+.header{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .card{background:white;padding:20px;border-radius:14px;margin-top:18px;box-shadow:0 2px 10px #0000000d}
 h2{margin:10px 0}
 label{display:block;font-size:14px;font-weight:bold;margin-top:15px}
@@ -19,8 +19,16 @@ input,select{width:100%;padding:12px;margin-top:7px;border:1px solid #d0d5dd;bor
 button{border:0;background:#1769e0;color:white;padding:12px 16px;border-radius:8px;cursor:pointer;margin-top:16px;width:100%;font-size:15px}
 button:disabled{opacity:.6}
 .logout{background:#667085}
-.note{color:#667085;font-size:13px;line-height:1.5}
-.status{display:inline-block;background:#fff4d6;color:#875900;padding:7px 12px;border-radius:20px;font-size:12px}
+.note{color:#667085;font-size:13px;line-height:1.6}
+.status{display:inline-block;padding:8px 13px;border-radius:20px;font-size:13px;font-weight:bold;text-transform:capitalize}
+.status.pending{background:#fff4d6;color:#875900}
+.status.approved{background:#dcfce7;color:#166534}
+.status.rejected{background:#fee2e2;color:#991b1b}
+.status.none{background:#e5e7eb;color:#374151}
+.statusMessage{padding:13px;border-radius:9px;margin-top:12px;font-size:14px;line-height:1.6}
+.pendingMessage{background:#fff8e7;color:#795500}
+.approvedMessage{background:#eaf8ef;color:#166534}
+.rejectedMessage{background:#fff0f0;color:#a00000}
 #message{margin-top:12px;font-size:14px;overflow-wrap:anywhere}
 a{color:#1769e0;text-decoration:none}
 #pageContent{display:none}
@@ -39,6 +47,18 @@ a{color:#1769e0;text-decoration:none}
 <div id="errorBox"></div>
 
 <div id="pageContent">
+
+<div class="card">
+<h3>Payment Verification</h3>
+<p>Current Status:</p>
+<span class="status none" id="paymentStatus">Loading...</span>
+<div id="statusMessage" class="statusMessage pendingMessage">
+Checking your payment verification status...
+</div>
+<p class="note">
+Changing your bank details will reset verification to Pending.
+</p>
+</div>
 
 <div class="card">
 <h3>Bank Account Details</h3>
@@ -86,13 +106,9 @@ a{color:#1769e0;text-decoration:none}
 </div>
 
 <div class="card">
-<h3>Payment Verification</h3>
-<p>Current Status: <span class="status" id="paymentStatus">Loading...</span></p>
-<p class="note">Your bank details are private. Verification and actual payouts are not active yet.</p>
-</div>
-
-<div class="card">
-<p class="note">BZlikely Publisher Account</p>
+<p class="note">
+Your bank details are private. Payment verification does not mean that a payout has been sent. Actual payouts are not active yet.
+</p>
 <button class="logout" type="button" onclick="logout()">Logout</button>
 </div>
 
@@ -101,8 +117,6 @@ a{color:#1769e0;text-decoration:none}
 
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
-
-/* Apni Supabase ki default Publishable Key yahan lagao */
 const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
 
 const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
@@ -119,6 +133,33 @@ function message(text,color){
  const el=document.getElementById("message");
  el.textContent=text;
  el.style.color=color;
+}
+
+function showPaymentStatus(status){
+ const badge=document.getElementById("paymentStatus");
+ const info=document.getElementById("statusMessage");
+
+ const value=(status||"pending").toLowerCase();
+
+ badge.className="status";
+ info.className="statusMessage";
+
+ if(value==="approved"){
+  badge.textContent="Approved";
+  badge.classList.add("approved");
+  info.classList.add("approvedMessage");
+  info.textContent="Your bank details have been approved by the BZlikely administration. This does not mean a payment has been sent.";
+ }else if(value==="rejected"){
+  badge.textContent="Rejected";
+  badge.classList.add("rejected");
+  info.classList.add("rejectedMessage");
+  info.textContent="Your bank details have been rejected. Please contact BZlikely administration for clarification before submitting corrected details.";
+ }else{
+  badge.textContent="Pending";
+  badge.classList.add("pending");
+  info.classList.add("pendingMessage");
+  info.textContent="Your bank details are waiting for administrator verification.";
+ }
 }
 
 async function checkLogin(){
@@ -169,7 +210,7 @@ async function checkLogin(){
 async function loadPaymentDetails(){
  const {data,error}=await db
   .from("publisher_payment_methods")
-  .select("*")
+  .select("account_holder_name,bank_name,country,iban,swift_bic,currency,payment_status")
   .eq("publisher_id",currentUser.id)
   .maybeSingle();
 
@@ -179,16 +220,23 @@ async function loadPaymentDetails(){
  }
 
  if(data){
-  document.getElementById("holder").value=data.account_holder_name || "";
-  document.getElementById("bank").value=data.bank_name || "";
-  document.getElementById("country").value=data.country || "";
-  document.getElementById("iban").value=data.iban || "";
-  document.getElementById("swift").value=data.swift_bic || "";
-  document.getElementById("currency").value=data.currency || "USD";
-  document.getElementById("paymentStatus").textContent=data.payment_status || "pending";
+  document.getElementById("holder").value=data.account_holder_name||"";
+  document.getElementById("bank").value=data.bank_name||"";
+  document.getElementById("country").value=data.country||"";
+  document.getElementById("iban").value=data.iban||"";
+  document.getElementById("swift").value=data.swift_bic||"";
+  document.getElementById("currency").value=data.currency||"USD";
+
+  showPaymentStatus(data.payment_status||"pending");
   document.getElementById("saveBtn").textContent="Update Bank Details";
  }else{
-  document.getElementById("paymentStatus").textContent="Not submitted";
+  const badge=document.getElementById("paymentStatus");
+  badge.textContent="Not submitted";
+  badge.className="status none";
+
+  const info=document.getElementById("statusMessage");
+  info.textContent="Please submit your bank details for verification.";
+  info.className="statusMessage pendingMessage";
  }
 }
 
@@ -241,7 +289,7 @@ document.getElementById("paymentForm").addEventListener("submit",async function(
   if(result.error){
    message("Save failed: "+result.error.message,"red");
   }else{
-   message("Bank details saved successfully.","green");
+   message("Bank details saved. Verification status is now Pending.","green");
    await loadPaymentDetails();
   }
 
