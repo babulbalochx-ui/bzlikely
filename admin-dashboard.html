@@ -12,7 +12,8 @@ body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033;padd
 .container{max-width:900px;margin:auto}
 header{background:#142b52;color:white;padding:20px;border-radius:13px}
 .card{background:white;padding:18px;border-radius:12px;margin-top:16px;box-shadow:0 2px 10px #0000000b}
-input{width:100%;padding:12px;margin:8px 0;border:1px solid #ccd3df;border-radius:7px}
+input,textarea{width:100%;padding:12px;margin:8px 0;border:1px solid #ccd3df;border-radius:7px;font-family:Arial,sans-serif}
+textarea{min-height:85px;resize:vertical}
 button{border:0;padding:11px 15px;border-radius:7px;color:white;cursor:pointer;margin:8px 5px 0 0}
 button:disabled{opacity:.5;cursor:not-allowed}
 .primary{background:#1769df}
@@ -29,10 +30,12 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .bankBox h4{margin:3px 0 12px}
 .small{font-size:13px;color:#687386}
 #message{margin-top:12px;color:#1769df;overflow-wrap:anywhere}
-#errorBox{background:#fff0f0;color:#a00000;padding:15px;border-radius:9px;margin-top:15px;overflow-wrap:anywhere}
+#errorBox{background:#fff0f0;color:#a00000;padding:15px;border-radius:9px;margin-top:15px;overflow-wrap:anywhere;white-space:pre-wrap}
 .hidden{display:none}
 .paymentControls{border-top:1px solid #dce2eb;margin-top:12px;padding-top:10px}
 .statusText{font-weight:bold;text-transform:capitalize}
+.reasonBox{background:#fff8e8;border:1px solid #ead9a7;padding:12px;border-radius:8px;margin-top:12px}
+.reasonBox label{font-weight:bold}
 </style>
 </head>
 <body>
@@ -85,7 +88,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
-const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
+const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VaZ";
 
 const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let adminVerified = false;
@@ -204,7 +207,7 @@ async function loadPublishers() {
 
  const {data:payments,error:paymentError}=await db
   .from("publisher_payment_methods")
-  .select("publisher_id,account_holder_name,bank_name,country,iban,swift_bic,currency,payment_status");
+  .select("publisher_id,account_holder_name,bank_name,country,iban,swift_bic,currency,payment_status,rejection_reason");
 
  const paymentMap=new Map();
  if(!paymentError && payments) {
@@ -244,6 +247,10 @@ async function loadPublishers() {
     addLine(bankBox,"Currency",payment.currency);
     addLine(bankBox,"Payment Status",payment.payment_status||"pending");
 
+    if(payment.rejection_reason) {
+     addLine(bankBox,"Previous Rejection Reason",payment.rejection_reason);
+    }
+
     const controls=document.createElement("div");
     controls.className="paymentControls";
 
@@ -251,20 +258,34 @@ async function loadPublishers() {
     label.innerHTML="<strong>Payment Verification</strong>";
     controls.appendChild(label);
 
+    const reasonBox=document.createElement("div");
+    reasonBox.className="reasonBox";
+
+    const reasonLabel=document.createElement("label");
+    reasonLabel.textContent="Rejection Reason (required when rejecting)";
+    reasonBox.appendChild(reasonLabel);
+
+    const reasonInput=document.createElement("textarea");
+    reasonInput.placeholder="Write the exact reason for rejecting these bank details...";
+    reasonInput.value=payment.rejection_reason||"";
+    reasonBox.appendChild(reasonInput);
+
+    controls.appendChild(reasonBox);
+
     const pendingBtn=document.createElement("button");
     pendingBtn.className="pendingBtn";
     pendingBtn.textContent="Set Pending";
-    pendingBtn.onclick=()=>changePaymentStatus(p.id,"pending");
+    pendingBtn.onclick=()=>changePaymentStatus(p.id,"pending","");
 
     const approveBtn=document.createElement("button");
     approveBtn.className="approve";
     approveBtn.textContent="Approve Payment Details";
-    approveBtn.onclick=()=>changePaymentStatus(p.id,"approved");
+    approveBtn.onclick=()=>changePaymentStatus(p.id,"approved","");
 
     const rejectBtn=document.createElement("button");
     rejectBtn.className="reject";
     rejectBtn.textContent="Reject Payment Details";
-    rejectBtn.onclick=()=>changePaymentStatus(p.id,"rejected");
+    rejectBtn.onclick=()=>changePaymentStatus(p.id,"rejected",reasonInput.value);
 
     controls.append(pendingBtn,approveBtn,rejectBtn);
     bankBox.appendChild(controls);
@@ -297,14 +318,22 @@ async function loadPublishers() {
   :"Publisher and bank details loaded.";
 }
 
-async function changePaymentStatus(publisherId,status) {
+async function changePaymentStatus(publisherId,status,reason) {
  if(!adminVerified) return;
+
+ const cleanReason=(reason||"").trim();
+
+ if(status==="rejected" && !cleanReason) {
+  alert("Please write a rejection reason before rejecting bank details.");
+  return;
+ }
 
  if(!confirm("Change payment verification status to "+status+"?")) return;
 
  const {error}=await db.from("publisher_payment_methods")
   .update({
    payment_status:status,
+   rejection_reason:status==="rejected"?cleanReason:null,
    updated_at:new Date().toISOString()
   })
   .eq("publisher_id",publisherId);
