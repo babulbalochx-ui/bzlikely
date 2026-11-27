@@ -6,199 +6,198 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BZlikely Publisher Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 *{box-sizing:border-box}
 body{
-  margin:0;
-  background:#f3f6fb;
-  font-family:Arial,sans-serif;
-  color:#172033;
-  visibility:hidden;
+ margin:0;background:#f3f6fb;font-family:Arial,sans-serif;
+ color:#172033;visibility:hidden
 }
 header{background:#142b52;color:white;padding:22px}
 header h2{margin:0 0 8px}
 header p{margin:0;color:#d5e0f2}
 main{padding:20px;max-width:650px;margin:auto}
 .card{
-  background:white;
-  padding:20px;
-  border-radius:14px;
-  margin-bottom:15px;
-  box-shadow:0 2px 10px #0000000b
+ background:white;padding:20px;border-radius:14px;
+ margin-bottom:15px;box-shadow:0 2px 10px #0000000b
 }
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:13px}
 .stat{
-  background:white;
-  padding:18px 12px;
-  border-radius:13px;
-  box-shadow:0 2px 10px #0000000b
+ background:white;padding:18px 12px;border-radius:13px;
+ box-shadow:0 2px 10px #0000000b
 }
 .stat p{margin:0 0 12px;color:#687386;font-size:14px}
 .stat h2{margin:0;color:#1769df;font-size:27px}
 .link-stat{
-  display:block;
-  text-decoration:none;
-  color:inherit;
-  border:2px solid transparent
+ display:block;text-decoration:none;color:inherit;
+ border:2px solid transparent
 }
 .link-stat:active{border-color:#1769df}
 .small{font-size:13px;color:#687386}
 button{
-  border:0;
-  background:#1769df;
-  color:white;
-  padding:13px 17px;
-  border-radius:9px;
-  font-size:15px;
-  cursor:pointer;
-  margin:5px 5px 5px 0
+ border:0;background:#1769df;color:white;padding:13px 17px;
+ border-radius:9px;font-size:15px;cursor:pointer;margin:5px 5px 5px 0
 }
 .secondary{background:#142b52}
 #error{color:#c62828;font-size:14px}
+#accessError{
+ display:none;max-width:600px;margin:30px auto;padding:22px;
+ background:white;border-radius:14px;color:#a00000;
+ line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere
+}
 </style>
 </head>
-
 <body>
 
 <header>
-  <h2>BZlikely</h2>
-  <p>Publisher Dashboard</p>
-  <p id="welcome" class="small">Loading account...</p>
+ <h2>BZlikely</h2>
+ <p>Publisher Dashboard</p>
+ <p id="welcome" class="small">Verifying account...</p>
 </header>
 
-<main>
+<div id="accessError">
+ <h3>Account Access Restricted</h3>
+ <p id="accessMessage"></p>
+ <p>For assistance, contact bzlikelybusiness@gmail.com</p>
+ <button onclick="logout()">Return to Login</button>
+</div>
 
-  <div class="card">
-    <h3>Account Overview</h3>
-    <p class="small">Your publisher activity at a glance.</p>
+<main id="dashboardContent">
+ <div class="card">
+  <h3>Account Overview</h3>
+  <p class="small">Your publisher activity at a glance.</p>
+ </div>
+
+ <div class="stats">
+  <a class="stat link-stat" href="publisher-links.html">
+   <p>Total Links</p>
+   <h2 id="totalLinks">...</h2>
+   <p class="small">Tap to view your links →</p>
+  </a>
+
+  <div class="stat">
+   <p>Total Clicks</p>
+   <h2>Unavailable</h2>
   </div>
 
-  <div class="stats">
-
-    <a class="stat link-stat" href="publisher-links.html">
-      <p>Total Links</p>
-      <h2 id="totalLinks">...</h2>
-      <p class="small">Tap to view your links →</p>
-    </a>
-
-    <div class="stat">
-      <p>Total Clicks</p>
-      <h2>0</h2>
-    </div>
-
-    <div class="stat">
-      <p>Total Sales</p>
-      <h2>0</h2>
-    </div>
-
-    <div class="stat">
-      <p>Total Earnings</p>
-      <h2>$0.00</h2>
-    </div>
-
+  <div class="stat">
+   <p>Total Sales</p>
+   <h2>Not connected</h2>
   </div>
 
-  <div class="card" style="margin-top:16px">
-    <h3>Account Information</h3>
-    <p id="name">Name: Loading...</p>
-    <p id="email">Email: Loading...</p>
-    <p id="error"></p>
-    <p class="small">
-      Clicks, sales and earnings will be connected after tracking is implemented.
-    </p>
-
-    <button onclick="location.href='publisher-home.html'">
-      Back to Publisher Home
-    </button>
-
-    <button class="secondary" onclick="logout()">
-      Logout
-    </button>
+  <div class="stat">
+   <p>Total Earnings</p>
+   <h2>Not connected</h2>
   </div>
+ </div>
 
+ <div class="card" style="margin-top:16px">
+  <h3>Account Information</h3>
+  <p id="name">Name: Loading...</p>
+  <p id="email">Email: Loading...</p>
+  <p id="error"></p>
+  <p class="small">
+   Clicks, sales and earnings will be connected after tracking is implemented.
+  </p>
+  <button onclick="location.href='publisher-home.html'">
+   Back to Publisher Home
+  </button>
+  <button class="secondary" onclick="logout()">Logout</button>
+ </div>
 </main>
 
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
-const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
+const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VaGIXaZ";
 
-const db = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let accountVerified=false;
+
+function restrictAccess(message){
+ accountVerified=false;
+ document.getElementById("dashboardContent").style.display="none";
+ document.getElementById("accessMessage").textContent=message;
+ document.getElementById("accessError").style.display="block";
+ document.getElementById("welcome").textContent="Account access restricted";
+ document.body.style.visibility="visible";
+}
 
 async function start(){
+ try{
+  const {data,error}=await db.auth.getSession();
 
-  const {data,error} = await db.auth.getSession();
-
-  if(error || !data.session){
-    location.replace("publisher-login.html");
-    return;
+  if(error){
+   location.replace("publisher-login.html");
+   return;
   }
 
-  const user = data.session.user;
-
-  const {data:profile,error:profileError} = await db
-    .from("publishers")
-    .select("full_name,status")
-    .eq("id",user.id)
-    .maybeSingle();
-
-  if(profileError || !profile){
-    await db.auth.signOut();
-    alert("Unable to verify your publisher account. Please login again.");
-    location.replace("publisher-login.html");
-    return;
+  if(!data.session){
+   location.replace("publisher-login.html");
+   return;
   }
 
-  if(profile.status !== "approved"){
-    await db.auth.signOut();
+  const user=data.session.user;
 
-    if(profile.status === "pending"){
-      alert("Your account is pending admin approval.");
-    }else{
-      alert("Your publisher account is not approved.");
-    }
+  const {data:profile,error:profileError}=await db
+   .from("publishers")
+   .select("full_name,status,is_active")
+   .eq("id",user.id)
+   .maybeSingle();
 
-    location.replace("publisher-login.html");
-    return;
+  if(profileError||!profile){
+   restrictAccess("Unable to verify your publisher account. Please contact BZlikely administration.");
+   return;
   }
 
-  const name = profile.full_name || user.email;
+  if(profile.is_active!==true){
+   restrictAccess("Your publisher account has been deactivated by BZlikely administration.");
+   return;
+  }
 
-  document.getElementById("email").textContent =
-    "Email: " + user.email;
+  const status=(profile.status||"pending").toLowerCase();
 
-  document.getElementById("welcome").textContent =
-    "Welcome, " + name;
+  if(status!=="approved"){
+   if(status==="pending"){
+    restrictAccess("Your account is waiting for admin approval.");
+   }else if(status==="rejected"){
+    restrictAccess("Your publisher application has been rejected.");
+   }else{
+    restrictAccess("Your account is not approved. Current status: "+status);
+   }
+   return;
+  }
 
-  document.getElementById("name").textContent =
-    "Name: " + name;
+  accountVerified=true;
+  const name=profile.full_name||user.email||"Publisher";
 
-  const {count,error:linkError} = await db
-    .from("publisher_links")
-    .select("*",{count:"exact",head:true})
-    .eq("publisher_id",user.id);
+  document.getElementById("email").textContent="Email: "+(user.email||"Not available");
+  document.getElementById("welcome").textContent="Welcome, "+name;
+  document.getElementById("name").textContent="Name: "+name;
+
+  const {count,error:linkError}=await db
+   .from("publisher_links")
+   .select("id",{count:"exact",head:true})
+   .eq("publisher_id",user.id);
 
   if(linkError){
-    document.getElementById("totalLinks").textContent = "Error";
-    document.getElementById("error").textContent =
-      "Could not load links: " + linkError.message;
+   document.getElementById("totalLinks").textContent="Unavailable";
+   document.getElementById("error").textContent="Could not load links: "+linkError.message;
   }else{
-    document.getElementById("totalLinks").textContent = count ?? 0;
+   document.getElementById("totalLinks").textContent=count??0;
   }
 
-  document.body.style.visibility = "visible";
+  document.body.style.visibility="visible";
+
+ }catch(error){
+  restrictAccess("A verification error occurred. Please try again or contact bzlikelybusiness@gmail.com.");
+ }
 }
 
 async function logout(){
-  await db.auth.signOut();
-  location.replace("publisher-login.html");
+ await db.auth.signOut();
+ location.replace("publisher-login.html");
 }
 
 start();
 </script>
-
 </body>
 </html>
