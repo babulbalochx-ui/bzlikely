@@ -16,14 +16,18 @@ h2{margin:10px 0}
 label{display:block;font-size:14px;font-weight:bold;margin-top:15px}
 input,select{width:100%;padding:12px;margin-top:7px;border:1px solid #d0d5dd;border-radius:8px;font-size:15px;background:white}
 button{border:0;background:#1769e0;color:white;padding:12px 16px;border-radius:8px;cursor:pointer;margin-top:16px;width:100%;font-size:15px}
+button:disabled{opacity:.6}
 .logout{background:#667085}
 .note{color:#667085;font-size:13px;line-height:1.5}
 .status{display:inline-block;background:#fff4d6;color:#875900;padding:7px 12px;border-radius:20px;font-size:12px}
-#message{margin-top:12px;font-size:14px}
+#message{margin-top:12px;font-size:14px;overflow-wrap:anywhere}
 a{color:#1769e0;text-decoration:none}
+#pageContent{display:none}
+#errorBox{display:none;background:#fff0f0;color:#a40000;padding:16px;border-radius:10px;margin-top:20px;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
+
 <div class="container">
 
 <div class="header">
@@ -31,11 +35,16 @@ a{color:#1769e0;text-decoration:none}
 <a href="publisher-home.html">← Home</a>
 </div>
 
+<div id="errorBox"></div>
+
+<div id="pageContent">
+
 <div class="card">
 <h3>Bank Account Details</h3>
 <p class="note">Add your bank information for future publisher payouts.</p>
 
 <form id="paymentForm">
+
 <label>Account Holder Name</label>
 <input id="holder" type="text" required placeholder="Name as shown on bank account">
 
@@ -87,6 +96,7 @@ a{color:#1769e0;text-decoration:none}
 </div>
 
 </div>
+</div>
 
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
@@ -101,37 +111,57 @@ function message(text,color){
  document.getElementById("message").style.color=color;
 }
 
+function showError(text){
+ const box=document.getElementById("errorBox");
+ box.textContent=text;
+ box.style.display="block";
+}
+
 async function checkLogin(){
- const {data,error}=await db.auth.getSession();
+ try{
+  const {data,error}=await db.auth.getSession();
 
- if(error || !data.session){
-  window.location.replace("publisher-login.html");
-  return;
+  if(error || !data.session){
+   window.location.replace("publisher-login.html");
+   return;
+  }
+
+  currentUser=data.session.user;
+
+  const {data:publisher,error:profileError}=await db
+   .from("publishers")
+   .select("status")
+   .eq("id",currentUser.id)
+   .maybeSingle();
+
+  if(profileError || !publisher){
+   const reason=profileError
+    ? profileError.message
+    : "No publisher profile row found for this login.";
+
+   showError(
+    "PUBLISHER VERIFICATION ERROR\n\n"+
+    reason+
+    "\n\nUser ID: "+currentUser.id+
+    "\n\nPlease share this error with support."
+   );
+
+   currentUser=null;
+   return;
+  }
+
+  if(publisher.status!=="approved"){
+   showError("Your publisher account is not approved. Current status: "+publisher.status);
+   currentUser=null;
+   return;
+  }
+
+  document.getElementById("pageContent").style.display="block";
+  await loadPaymentDetails();
+
+ }catch(error){
+  showError("Unexpected error: "+error.message);
  }
-
- currentUser=data.session.user;
-
- const {data:publisher,error:profileError}=await db
-  .from("publishers")
-  .select("status")
-  .eq("id",currentUser.id)
-  .maybeSingle();
-
- if(profileError || !publisher){
-  await db.auth.signOut();
-  alert("Unable to verify publisher account. Please login again.");
-  window.location.replace("publisher-login.html");
-  return;
- }
-
- if(publisher.status!=="approved"){
-  await db.auth.signOut();
-  alert("Your publisher account is not approved.");
-  window.location.replace("publisher-login.html");
-  return;
- }
-
- await loadPaymentDetails();
 }
 
 async function loadPaymentDetails(){
@@ -182,34 +212,38 @@ document.getElementById("paymentForm").addEventListener("submit",async function(
   updated_at:new Date().toISOString()
  };
 
- const {data:existing,error:checkError}=await db
-  .from("publisher_payment_methods")
-  .select("id")
-  .eq("publisher_id",currentUser.id)
-  .maybeSingle();
+ try{
+  const {data:existing,error:checkError}=await db
+   .from("publisher_payment_methods")
+   .select("id")
+   .eq("publisher_id",currentUser.id)
+   .maybeSingle();
 
- if(checkError){
-  message("Error: "+checkError.message,"red");
- }else{
-  let result;
-
-  if(existing){
-   result=await db
-    .from("publisher_payment_methods")
-    .update(paymentData)
-    .eq("publisher_id",currentUser.id);
+  if(checkError){
+   message("Error: "+checkError.message,"red");
   }else{
-   result=await db
-    .from("publisher_payment_methods")
-    .insert(paymentData);
-  }
+   let result;
 
-  if(result.error){
-   message("Save failed: "+result.error.message,"red");
-  }else{
-   message("Bank details saved successfully.","green");
-   await loadPaymentDetails();
+   if(existing){
+    result=await db
+     .from("publisher_payment_methods")
+     .update(paymentData)
+     .eq("publisher_id",currentUser.id);
+   }else{
+    result=await db
+     .from("publisher_payment_methods")
+     .insert(paymentData);
+   }
+
+   if(result.error){
+    message("Save failed: "+result.error.message,"red");
+   }else{
+    message("Bank details saved successfully.","green");
+    await loadPaymentDetails();
+   }
   }
+ }catch(error){
+  message("Error: "+error.message,"red");
  }
 
  btn.disabled=false;
