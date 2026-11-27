@@ -51,7 +51,6 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 </header>
 
 <main>
-
 <section id="links" class="section active">
 <div class="card">
 <h3>My Affiliate Links</h3>
@@ -63,7 +62,6 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 <button id="addBtn" onclick="addLink()">Add Link</button>
 <div id="message"></div>
 </div>
-
 <div class="card">
 <h3>Saved Links</h3>
 <p class="small">Each product shows its own tracked clicks.</p>
@@ -75,20 +73,17 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 <div class="card">
 <h3>Publisher Dashboard</h3>
 <p>Welcome to your BZlikely publisher account.</p>
-
 <p class="small">Select report period</p>
 <div class="report-buttons">
 <button class="active" onclick="changePeriod('today',this)">Today</button>
 <button onclick="changePeriod('7days',this)">Last 7 Days</button>
 <button onclick="changePeriod('30days',this)">Last 30 Days</button>
 </div>
-
 <p class="small" id="periodLabel">Today's tracked clicks</p>
 <div class="stat" id="clickCount">Loading...</div>
 <p class="small">Clicks recorded through your BZlikely tracking links. Sales and earnings tracking are not yet connected.</p>
 <button onclick="refreshDashboard()">Refresh Report</button>
 </div>
-
 <div class="card">
 <h3>Click History</h3>
 <p class="small">Recent clicks for the selected period, with date and time.</p>
@@ -117,14 +112,15 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 </section>
 
 <div class="card" id="errorCard" hidden>
-<h3>Account Verification Details</h3>
+<h3>Account Access Restricted</h3>
 <p id="accountError"></p>
+<button class="delete" onclick="logout()">Return to Login</button>
 </div>
 
 <footer>© 2026 BZlikely. All rights reserved.</footer>
 </main>
 
-<nav>
+<nav hidden>
 <button class="active" onclick="showTab('links',this)"><span>🔗</span>Links</button>
 <button onclick="showTab('dashboard',this)"><span>📊</span>Dashboard</button>
 <button onclick="showTab('payments',this)"><span>💳</span>Payments</button>
@@ -133,21 +129,23 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
-const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
+const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VaGIXaZ";
 
 const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let currentUser = null;
 let selectedPeriod = "today";
+let accountVerified = false;
 
 function showTab(id,btn){
+ if(!accountVerified)return;
+
  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
  document.getElementById(id).classList.add("active");
  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
  btn.classList.add("active");
 
- if(id==="links") loadLinks();
- if(id==="dashboard") refreshDashboard();
-
+ if(id==="links")loadLinks();
+ if(id==="dashboard")refreshDashboard();
  window.scrollTo(0,0);
 }
 
@@ -156,71 +154,94 @@ function showMessage(text){
 }
 
 function showVerificationError(title,details){
+ accountVerified=false;
+ document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+ document.querySelector("nav").hidden=true;
  document.getElementById("errorCard").hidden=false;
- document.getElementById("accountError").textContent=title+"\n\n"+details;
- document.getElementById("welcome").textContent="Account verification issue";
+ document.getElementById("accountError").textContent=
+  title+"\n\n"+details+
+  "\n\nFor assistance, contact bzlikelybusiness@gmail.com";
+ document.getElementById("welcome").textContent="Account access restricted";
 }
 
 async function start(){
+ document.querySelector("nav").hidden=true;
  document.getElementById("welcome").textContent="Checking login...";
 
- const {data,error}=await db.auth.getSession();
+ try{
+  const {data,error}=await db.auth.getSession();
 
- if(error){
-  showVerificationError("Session error",error.message);
-  return;
+  if(error){
+   showVerificationError("Session error",error.message);
+   return;
+  }
+
+  if(!data.session){
+   location.replace("publisher-login.html");
+   return;
+  }
+
+  currentUser=data.session.user;
+
+  const {data:profile,error:profileError}=await db
+   .from("publishers")
+   .select("full_name,email,status,is_active")
+   .eq("id",currentUser.id)
+   .maybeSingle();
+
+  if(profileError){
+   showVerificationError("Publisher verification failed",
+    "Message: "+profileError.message+
+    "\nCode: "+(profileError.code||"Not available"));
+   return;
+  }
+
+  if(!profile){
+   showVerificationError("Publisher record not found",
+    "No publisher profile was returned for your account.");
+   return;
+  }
+
+  if(profile.is_active!==true){
+   showVerificationError("Account deactivated",
+    "Your publisher account is currently deactivated by BZlikely administration.");
+   return;
+  }
+
+  const status=(profile.status||"pending").toLowerCase();
+
+  if(status==="pending"){
+   showVerificationError("Account pending",
+    "Your account is waiting for admin approval.");
+   return;
+  }
+
+  if(status==="rejected"){
+   showVerificationError("Application rejected",
+    "Your application was rejected. Please contact BZlikely administration.");
+   return;
+  }
+
+  if(status!=="approved"){
+   showVerificationError("Account status issue",
+    "Current account status: "+status);
+   return;
+  }
+
+  accountVerified=true;
+  const name=profile.full_name||"Publisher";
+  document.getElementById("welcome").textContent="Welcome, "+name;
+  document.getElementById("profileName").textContent="Name: "+name;
+  document.getElementById("profileEmail").textContent="Email: "+(currentUser.email||profile.email||"Not available");
+
+  document.getElementById("links").classList.add("active");
+  document.querySelector("nav").hidden=false;
+  await loadLinks();
+
+ }catch(error){
+  showVerificationError("Unexpected verification error",
+   error.message||"Please try again later.");
  }
-
- if(!data.session){
-  location.replace("publisher-login.html");
-  return;
- }
-
- currentUser=data.session.user;
-
- const {data:profile,error:profileError}=await db
-  .from("publishers")
-  .select("full_name,email,status")
-  .eq("id",currentUser.id)
-  .maybeSingle();
-
- if(profileError){
-  showVerificationError("Publisher database verification failed",
-   "Message: "+profileError.message+
-   "\nCode: "+(profileError.code||"Not available")+
-   "\nUser ID: "+currentUser.id);
-  return;
- }
-
- if(!profile){
-  showVerificationError("Publisher record not found",
-   "No publisher profile was returned for User ID: "+currentUser.id);
-  return;
- }
-
- const status=(profile.status||"pending").toLowerCase();
-
- if(status==="pending"){
-  showVerificationError("Account pending","Your account is waiting for admin approval.");
-  return;
- }
-
- if(status==="rejected"){
-  showVerificationError("Application rejected","Please contact BZlikely support.");
-  return;
- }
-
- if(status!=="approved"){
-  showVerificationError("Unknown account status","Current status: "+status);
-  return;
- }
-
- const name=profile.full_name||"Publisher";
- document.getElementById("welcome").textContent="Welcome, "+name;
- document.getElementById("profileName").textContent="Name: "+name;
- document.getElementById("profileEmail").textContent="Email: "+currentUser.email;
-
- await loadLinks();
 }
 
 function makeTrackingUrl(linkId){
@@ -240,7 +261,7 @@ async function copyTrackingLink(url,button){
 }
 
 async function addLink(){
- if(!currentUser)return;
+ if(!accountVerified||!currentUser)return;
 
  const title=document.getElementById("linkTitle").value.trim();
  const url=document.getElementById("linkUrl").value.trim();
@@ -282,7 +303,7 @@ async function addLink(){
 }
 
 async function loadLinks(){
- if(!currentUser)return;
+ if(!accountVerified||!currentUser)return;
 
  const list=document.getElementById("linkList");
  list.textContent="Loading links...";
@@ -304,7 +325,7 @@ async function loadLinks(){
 
  list.innerHTML="";
 
- const boxes=await Promise.all(data.map(async item=>{
+ for(const item of data){
   const box=document.createElement("div");
   box.className="link-item";
 
@@ -326,7 +347,6 @@ async function loadLinks(){
   trackingLabel.textContent="Your BZlikely tracking URL:";
 
   const trackingUrl=makeTrackingUrl(item.id);
-
   const trackingText=document.createElement("div");
   trackingText.className="tracking-url";
   trackingText.textContent=trackingUrl;
@@ -340,12 +360,11 @@ async function loadLinks(){
   countBox.className="product-clicks";
   countBox.textContent="Loading product clicks...";
 
-  const {count,countError}=await getProductClicks(item.id);
-
-  if(countError){
+  const result=await getProductClicks(item.id);
+  if(result.countError){
    countBox.textContent="Product clicks unavailable";
   }else{
-   countBox.textContent="Total product clicks: "+(count||0);
+   countBox.textContent="Total product clicks: "+(result.count||0);
   }
 
   const del=document.createElement("button");
@@ -353,22 +372,11 @@ async function loadLinks(){
   del.textContent="Delete";
   del.onclick=()=>deleteLink(item.id);
 
-  box.append(
-   heading,
-   originalLabel,
-   anchor,
-   trackingLabel,
-   trackingText,
-   copy,
-   countBox,
-   document.createElement("br"),
-   del
-  );
+  box.append(heading,originalLabel,anchor,trackingLabel,
+   trackingText,copy,countBox,document.createElement("br"),del);
 
-  return box;
- }));
-
- boxes.forEach(box=>list.appendChild(box));
+  list.appendChild(box);
+ }
 }
 
 async function getProductClicks(linkId){
@@ -399,11 +407,10 @@ function getPeriodStart(){
 }
 
 function changePeriod(period,button){
+ if(!accountVerified)return;
  selectedPeriod=period;
-
  document.querySelectorAll(".report-buttons button")
   .forEach(b=>b.classList.remove("active"));
-
  button.classList.add("active");
 
  const labels={
@@ -417,11 +424,10 @@ function changePeriod(period,button){
 }
 
 async function loadClickStats(){
- if(!currentUser)return;
+ if(!accountVerified||!currentUser)return;
 
  const countElement=document.getElementById("clickCount");
  countElement.textContent="Loading...";
-
  const start=getPeriodStart().toISOString();
 
  const {count,error}=await db
@@ -440,11 +446,10 @@ async function loadClickStats(){
 }
 
 async function loadClickHistory(){
- if(!currentUser)return;
+ if(!accountVerified||!currentUser)return;
 
  const history=document.getElementById("clickHistory");
  history.textContent="Loading history...";
-
  const start=getPeriodStart().toISOString();
 
  const {data,error}=await db
@@ -456,7 +461,6 @@ async function loadClickHistory(){
   .limit(100);
 
  if(error){
-  console.error("Click history error:",error);
   history.textContent="Could not load click history: "+error.message;
   return;
  }
@@ -467,7 +471,6 @@ async function loadClickHistory(){
  }
 
  history.innerHTML="";
-
  data.forEach(click=>{
   const item=document.createElement("div");
   item.className="history-item";
@@ -487,10 +490,12 @@ async function loadClickHistory(){
 }
 
 async function refreshDashboard(){
+ if(!accountVerified)return;
  await Promise.all([loadClickStats(),loadClickHistory()]);
 }
 
 async function deleteLink(id){
+ if(!accountVerified||!currentUser)return;
  if(!confirm("Delete this link?"))return;
 
  const {error}=await db.from("publisher_links")
