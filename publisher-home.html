@@ -31,6 +31,9 @@ button:disabled{opacity:.6}
 .stat{font-size:32px;font-weight:bold;color:#1769df;margin:12px 0}
 .history-item strong{display:block;margin-bottom:7px}
 .history-item p{margin:5px 0;font-size:13px;color:#687386}
+.report-buttons{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0}
+.report-buttons button{flex:1;min-width:90px;background:#e9eef7;color:#263b5b}
+.report-buttons button.active{background:#1769df;color:white}
 nav{position:fixed;bottom:0;left:0;right:0;background:white;display:flex;justify-content:space-around;padding:10px 3px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -2px 12px #00000012}
 nav button{background:white;color:#536078;padding:8px 4px;font-size:12px;flex:1}
 nav button.active{color:#1769df;font-weight:bold}
@@ -71,15 +74,24 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 <div class="card">
 <h3>Publisher Dashboard</h3>
 <p>Welcome to your BZlikely publisher account.</p>
-<p class="small">Total tracked clicks</p>
+
+<p class="small">Select report period</p>
+<div class="report-buttons">
+<button class="active" onclick="changePeriod('today',this)">Today</button>
+<button onclick="changePeriod('7days',this)">Last 7 Days</button>
+<button onclick="changePeriod('30days',this)">Last 30 Days</button>
+</div>
+
+<p class="small" id="periodLabel">Today's tracked clicks</p>
 <div class="stat" id="clickCount">Loading...</div>
+
 <p class="small">Clicks recorded through your BZlikely tracking links. Sales and earnings tracking are not yet connected.</p>
-<button onclick="refreshDashboard()">Refresh Statistics</button>
+<button onclick="refreshDashboard()">Refresh Report</button>
 </div>
 
 <div class="card">
 <h3>Click History</h3>
-<p class="small">Your recent tracked link clicks with date and time.</p>
+<p class="small">Recent clicks for the selected period, with date and time.</p>
 <div id="clickHistory">Loading history...</div>
 </div>
 </section>
@@ -125,6 +137,7 @@ const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
 
 const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let currentUser = null;
+let selectedPeriod = "today";
 
 function showTab(id,btn){
  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
@@ -335,16 +348,54 @@ async function loadLinks(){
  });
 }
 
+function getPeriodStart(){
+ const now=new Date();
+ const start=new Date(now);
+
+ if(selectedPeriod==="today"){
+  start.setHours(0,0,0,0);
+ }else if(selectedPeriod==="7days"){
+  start.setDate(start.getDate()-6);
+  start.setHours(0,0,0,0);
+ }else{
+  start.setDate(start.getDate()-29);
+  start.setHours(0,0,0,0);
+ }
+
+ return start;
+}
+
+function changePeriod(period,button){
+ selectedPeriod=period;
+
+ document.querySelectorAll(".report-buttons button")
+  .forEach(b=>b.classList.remove("active"));
+
+ button.classList.add("active");
+
+ const labels={
+  today:"Today's tracked clicks",
+  "7days":"Tracked clicks in the last 7 days",
+  "30days":"Tracked clicks in the last 30 days"
+ };
+
+ document.getElementById("periodLabel").textContent=labels[period];
+ refreshDashboard();
+}
+
 async function loadClickStats(){
  if(!currentUser)return;
 
  const countElement=document.getElementById("clickCount");
  countElement.textContent="Loading...";
 
+ const start=getPeriodStart().toISOString();
+
  const {count,error}=await db
   .from("publisher_clicks")
   .select("id",{count:"exact",head:true})
-  .eq("publisher_id",currentUser.id);
+  .eq("publisher_id",currentUser.id)
+  .gte("clicked_at",start);
 
  if(error){
   countElement.textContent="Unavailable";
@@ -361,12 +412,15 @@ async function loadClickHistory(){
  const history=document.getElementById("clickHistory");
  history.textContent="Loading history...";
 
+ const start=getPeriodStart().toISOString();
+
  const {data,error}=await db
   .from("publisher_clicks")
   .select("id,clicked_at,publisher_links(title)")
   .eq("publisher_id",currentUser.id)
+  .gte("clicked_at",start)
   .order("clicked_at",{ascending:false})
-  .limit(50);
+  .limit(100);
 
  if(error){
   console.error("Click history error:",error);
@@ -375,7 +429,7 @@ async function loadClickHistory(){
  }
 
  if(!data||data.length===0){
-  history.textContent="No clicks recorded yet.";
+  history.textContent="No clicks recorded in this period.";
   return;
  }
 
