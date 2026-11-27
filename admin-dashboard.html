@@ -11,21 +11,22 @@
 body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033;padding:18px}
 .container{max-width:900px;margin:auto}
 header{background:#142b52;color:white;padding:20px;border-radius:13px}
-header h2{margin:0 0 7px}
 .card{background:white;padding:18px;border-radius:12px;margin-top:16px;box-shadow:0 2px 10px #0000000b}
+input{width:100%;padding:12px;margin:8px 0;border:1px solid #ccd3df;border-radius:7px}
+button{border:0;padding:11px 15px;border-radius:7px;color:white;cursor:pointer;margin:8px 5px 0 0}
+.primary{background:#1769df}
+.approve{background:#16834b}
+.reject{background:#d93636}
+.logout{background:#555}
 .stats{display:flex;gap:12px;flex-wrap:wrap}
-.stat{flex:1;min-width:130px}
+.stat{flex:1;min-width:110px}
 .stat h2{font-size:27px;margin:8px 0}
 .publisher{border:1px solid #e1e6ee;border-radius:10px;padding:14px;margin-top:12px;overflow-wrap:anywhere}
 .publisher p{margin:7px 0}
-button{border:0;padding:10px 14px;border-radius:7px;color:white;cursor:pointer;margin:8px 5px 0 0}
-.approve{background:#16834b}
-.reject{background:#d93636}
-.refresh{background:#1769df}
-.logout{background:#555}
 .small{font-size:13px;color:#687386}
 #message{margin-top:12px;color:#1769df;overflow-wrap:anywhere}
 #errorBox{background:#fff0f0;color:#a00000;padding:15px;border-radius:9px;margin-top:15px;overflow-wrap:anywhere}
+.hidden{display:none}
 </style>
 </head>
 <body>
@@ -37,7 +38,18 @@ button{border:0;padding:10px 14px;border-radius:7px;color:white;cursor:pointer;m
 <p id="adminEmail"></p>
 </header>
 
-<div id="errorBox" hidden></div>
+<div id="errorBox" class="hidden"></div>
+
+<div id="loginSection" class="card">
+<h3>Admin Login</h3>
+<p class="small">Only authorized administrators can access this panel.</p>
+<input id="email" type="email" placeholder="Admin Email">
+<input id="password" type="password" placeholder="Admin Password">
+<button class="primary" id="loginButton" onclick="adminLogin()">Login as Admin</button>
+<div id="loginMessage"></div>
+</div>
+
+<div id="dashboard" class="hidden">
 
 <div class="card stats">
 <div class="stat">
@@ -56,8 +68,8 @@ button{border:0;padding:10px 14px;border-radius:7px;color:white;cursor:pointer;m
 
 <div class="card">
 <h3>Publisher Applications</h3>
-<button class="refresh" onclick="loadPublishers()">Refresh List</button>
-<div id="message">Checking admin access...</div>
+<button class="primary" onclick="loadPublishers()">Refresh List</button>
+<div id="message">Loading...</div>
 <div id="publisherList"></div>
 </div>
 
@@ -65,6 +77,7 @@ button{border:0;padding:10px 14px;border-radius:7px;color:white;cursor:pointer;m
 <button class="logout" onclick="logout()">Logout</button>
 </div>
 
+</div>
 </div>
 
 <script>
@@ -76,166 +89,191 @@ SUPABASE_URL,
 SUPABASE_KEY
 );
 
-let currentUser = null;
 let adminVerified = false;
 
-function showError(title,details){
- const box=document.getElementById('errorBox');
- box.hidden=false;
- box.innerHTML='';
- const heading=document.createElement('h3');
- heading.textContent=title;
- const paragraph=document.createElement('p');
- paragraph.textContent=details;
- box.append(heading,paragraph);
+function showError(title, details) {
+ const box = document.getElementById("errorBox");
+ box.classList.remove("hidden");
+ box.innerHTML = "";
+ const h = document.createElement("h3");
+ h.textContent = title;
+ const p = document.createElement("p");
+ p.textContent = details;
+ box.append(h,p);
 }
 
-async function start(){
- document.getElementById('message').textContent="Checking login...";
-
- const {data,error}=await db.auth.getSession();
-
- if(error){
-  showError("Login Error",error.message);
-  return;
- }
-
- if(!data.session){
-  location.href="publisher-login.html";
-  return;
- }
-
- currentUser=data.session.user;
-
- document.getElementById('adminEmail').textContent=
- "Logged in: "+currentUser.email;
-
- document.getElementById('message').textContent=
- "Checking admin permission...";
-
- const {data:admin,error:adminError}=await db
-  .from('admins')
-  .select('user_id')
-  .eq('user_id',currentUser.id)
+async function verifyAdmin(user) {
+ const {data, error} = await db
+  .from("admins")
+  .select("user_id")
+  .eq("user_id", user.id)
   .maybeSingle();
 
- if(adminError){
-  showError("Admin Database Error",
-   adminError.message+
-   " | Code: "+(adminError.code || "Not available")+
-   " | Your UID: "+currentUser.id
-  );
-  return;
+ if(error) {
+  throw new Error("Admin verification failed: " + error.message);
  }
 
- if(!admin){
-  showError("Admin Record Not Found",
-   "Logged in email: "+currentUser.email+
-   " | Your UID: "+currentUser.id+
-   " | This UID was not found in the admins table."
-  );
-  return;
+ if(!data) {
+  throw new Error("This account is not authorized as an admin.");
  }
 
- adminVerified=true;
- document.getElementById('message').textContent=
- "Admin access verified.";
+ adminVerified = true;
+ document.getElementById("adminEmail").textContent =
+  "Logged in: " + user.email;
 
+ document.getElementById("loginSection").classList.add("hidden");
+ document.getElementById("dashboard").classList.remove("hidden");
  await loadPublishers();
 }
 
-async function loadPublishers(){
- if(!adminVerified)return;
+async function adminLogin() {
+ const email = document.getElementById("email").value.trim();
+ const password = document.getElementById("password").value;
+ const msg = document.getElementById("loginMessage");
+ const btn = document.getElementById("loginButton");
 
- const message=document.getElementById('message');
- const list=document.getElementById('publisherList');
-
- message.textContent="Loading publishers...";
- list.innerHTML="";
-
- const {data,error}=await db.from('publishers')
-  .select('id,full_name,email,country,status,website_or_social,promotion_platform,promotion_method')
-  .order('created_at',{ascending:false});
-
- if(error){
-  message.textContent="Publisher Error: "+error.message;
+ if(!email || !password) {
+  msg.textContent = "Please enter email and password.";
   return;
  }
 
- const publishers=data || [];
+ btn.disabled = true;
+ msg.textContent = "Checking admin login...";
 
- document.getElementById('total').textContent=publishers.length;
- document.getElementById('pending').textContent=
- publishers.filter(p=>(p.status||'pending')==='pending').length;
- document.getElementById('approved').textContent=
- publishers.filter(p=>p.status==='approved').length;
+ const {data, error} = await db.auth.signInWithPassword({
+  email: email,
+  password: password
+ });
 
- if(publishers.length===0){
-  message.textContent="No publishers found.";
+ if(error) {
+  msg.textContent = "Login failed: " + error.message;
+  btn.disabled = false;
   return;
  }
 
- message.textContent="Publisher list loaded.";
+ try {
+  await verifyAdmin(data.user);
+ } catch(err) {
+  await db.auth.signOut();
+  adminVerified = false;
+  msg.textContent = err.message;
+  btn.disabled = false;
+ }
+}
 
- publishers.forEach(p=>{
-  const box=document.createElement('div');
-  box.className='publisher';
+async function start() {
+ const {data, error} = await db.auth.getSession();
 
-  function addLine(label,value){
-   const para=document.createElement('p');
-   const strong=document.createElement('strong');
-   strong.textContent=label+": ";
-   para.append(strong,document.createTextNode(value || "Not provided"));
+ if(error) {
+  showError("Session Error", error.message);
+  return;
+ }
+
+ if(data.session) {
+  try {
+   await verifyAdmin(data.session.user);
+  } catch(err) {
+   await db.auth.signOut();
+   showError("Admin Access Denied", err.message);
+  }
+ }
+}
+
+async function loadPublishers() {
+ if(!adminVerified) return;
+
+ const message = document.getElementById("message");
+ const list = document.getElementById("publisherList");
+
+ message.textContent = "Loading publishers...";
+ list.innerHTML = "";
+
+ const {data, error} = await db
+  .from("publishers")
+  .select("id,full_name,email,country,status,website_or_social,promotion_platform,promotion_method")
+  .order("created_at", {ascending:false});
+
+ if(error) {
+  message.textContent = "Publisher Error: " + error.message;
+  return;
+ }
+
+ const publishers = data || [];
+
+ document.getElementById("total").textContent = publishers.length;
+ document.getElementById("pending").textContent =
+  publishers.filter(p => (p.status || "pending") === "pending").length;
+ document.getElementById("approved").textContent =
+  publishers.filter(p => p.status === "approved").length;
+
+ if(publishers.length === 0) {
+  message.textContent = "No publishers found.";
+  return;
+ }
+
+ message.textContent = "Publisher list loaded.";
+
+ publishers.forEach(p => {
+  const box = document.createElement("div");
+  box.className = "publisher";
+
+  function addLine(label, value) {
+   const para = document.createElement("p");
+   const strong = document.createElement("strong");
+   strong.textContent = label + ": ";
+   para.append(strong, document.createTextNode(value || "Not provided"));
    box.appendChild(para);
   }
 
-  addLine("Name",p.full_name);
-  addLine("Email",p.email);
-  addLine("Country",p.country);
-  addLine("Website / Social",p.website_or_social);
-  addLine("Promotion Platform",p.promotion_platform);
-  addLine("Promotion Method",p.promotion_method);
-  addLine("Status",p.status || "pending");
+  addLine("Name", p.full_name);
+  addLine("Email", p.email);
+  addLine("Country", p.country);
+  addLine("Website / Social", p.website_or_social);
+  addLine("Promotion Platform", p.promotion_platform);
+  addLine("Promotion Method", p.promotion_method);
+  addLine("Status", p.status || "pending");
 
-  if((p.status||'pending')==='pending'){
-   const approve=document.createElement('button');
-   approve.className='approve';
-   approve.textContent='Approve';
-   approve.onclick=()=>changeStatus(p.id,'approved');
+  if((p.status || "pending") === "pending") {
+   const approve = document.createElement("button");
+   approve.className = "approve";
+   approve.textContent = "Approve";
+   approve.onclick = () => changeStatus(p.id, "approved");
 
-   const reject=document.createElement('button');
-   reject.className='reject';
-   reject.textContent='Reject';
-   reject.onclick=()=>changeStatus(p.id,'rejected');
+   const reject = document.createElement("button");
+   reject.className = "reject";
+   reject.textContent = "Reject";
+   reject.onclick = () => changeStatus(p.id, "rejected");
 
-   box.append(approve,reject);
+   box.append(approve, reject);
   }
 
   list.appendChild(box);
  });
 }
 
-async function changeStatus(id,status){
- if(!adminVerified)return;
+async function changeStatus(id, status) {
+ if(!adminVerified) return;
 
- if(!confirm("Change publisher status to "+status+"?"))return;
+ if(!confirm("Change publisher status to " + status + "?")) return;
 
- const {error}=await db.from('publishers')
+ const {error} = await db
+  .from("publishers")
   .update({status:status})
-  .eq('id',id);
+  .eq("id", id);
 
- if(error){
-  alert("Error: "+error.message);
+ if(error) {
+  alert("Update failed: " + error.message);
   return;
  }
 
- alert("Publisher status updated: "+status);
+ alert("Publisher status updated: " + status);
  await loadPublishers();
 }
 
-async function logout(){
+async function logout() {
  await db.auth.signOut();
- location.href="publisher-login.html";
+ adminVerified = false;
+ location.reload();
 }
 
 start();
