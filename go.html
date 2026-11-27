@@ -1,77 +1,99 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>BZlikely | Redirecting</title>
+
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f6fa;
-  color: #172033;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  margin: 0;
-  text-align: center;
+*{box-sizing:border-box}
+body{
+ font-family:Arial,sans-serif;background:#f4f6fa;color:#172033;
+ display:flex;align-items:center;justify-content:center;
+ min-height:100vh;margin:0;text-align:center
 }
-.box {
-  background: white;
-  padding: 30px;
-  border-radius: 14px;
-  max-width: 360px;
-  margin: 20px;
+.box{
+ background:white;padding:30px;border-radius:14px;
+ max-width:360px;width:calc(100% - 40px);
+ box-shadow:0 5px 25px #00000012
 }
+h2{color:#1746a2}
+p{line-height:1.6;color:#667085;overflow-wrap:anywhere}
 </style>
 </head>
+
 <body>
 <div class="box">
-  <h2>BZlikely</h2>
-  <p id="message">Please wait. Redirecting...</p>
+ <h2>BZlikely</h2>
+ <p id="message" role="status" aria-live="polite">
+  Please wait. Redirecting...
+ </p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
-const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
-const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
+const SUPABASE_URL="https://acnpjyluvhvckrncqkyz.supabase.co";
+const SUPABASE_KEY="sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VaGIXaZ";
 
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const db=window.supabase.createClient(
+ SUPABASE_URL,
+ SUPABASE_KEY
+);
 
-async function redirectVisitor() {
-  const message = document.getElementById("message");
-  const linkId = new URLSearchParams(window.location.search).get("id");
+const message=document.getElementById("message");
 
-  if (!linkId) {
-    message.textContent = "Invalid tracking link.";
-    return;
+async function redirectVisitor(){
+ const params=new URLSearchParams(window.location.search);
+ const linkId=params.get("id");
+
+ if(!linkId||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(linkId)){
+  message.textContent="Invalid tracking link.";
+  return;
+ }
+
+ try{
+  const {data,error}=await db.rpc("track_publisher_link",{
+   p_link_id:linkId
+  });
+
+  if(error){
+   throw error;
   }
 
-  try {
-    const { data, error } = await db.rpc("track_publisher_link", {
-      p_link_id: linkId
-    });
-
-    if (error) throw error;
-
-    if (!data) {
-      message.textContent = "This link is unavailable.";
-      return;
-    }
-
-    const destination = new URL(data);
-
-    if (!["http:", "https:"].includes(destination.protocol)) {
-      throw new Error("Invalid destination.");
-    }
-
-    message.textContent = "Redirecting you now...";
-    window.location.replace(destination.href);
-
-  } catch (error) {
-    console.error(error);
-    message.textContent = "Unable to open this link. Please try again later.";
+  if(typeof data!=="string"||!data.trim()){
+   message.textContent="This link is unavailable.";
+   return;
   }
+
+  let destination;
+
+  try{
+   destination=new URL(data);
+  }catch{
+   message.textContent="Invalid destination link.";
+   return;
+  }
+
+  if(destination.protocol!=="https:"&&destination.protocol!=="http:"){
+   message.textContent="This destination is not allowed.";
+   return;
+  }
+
+  if(destination.username||destination.password){
+   message.textContent="This destination is not allowed.";
+   return;
+  }
+
+  message.textContent="Redirecting you now...";
+  window.location.replace(destination.href);
+
+ }catch(error){
+  console.error("BZlikely tracking error:",error);
+  message.textContent="Unable to open this link. Please try again later.";
+ }
 }
 
 redirectVisitor();
