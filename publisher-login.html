@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Publisher Login | BZlikely</title>
+
 <style>
 *{box-sizing:border-box}
 body{
@@ -31,11 +32,17 @@ button{
   cursor:pointer
 }
 button:disabled{opacity:.6}
+#forgotBtn{
+  margin-top:12px;
+  background:#eaf0ff;
+  color:#1746a2;
+}
 #message{margin-top:15px;line-height:1.5;overflow-wrap:anywhere}
 .links{text-align:center;margin-top:20px;font-size:14px}
 a{color:#1746a2}
 </style>
 </head>
+
 <body>
 
 <div class="container">
@@ -50,6 +57,11 @@ a{color:#1746a2}
     <input id="password" type="password" required autocomplete="current-password">
 
     <button id="loginBtn" type="submit">Login to Account</button>
+
+    <button id="forgotBtn" type="button">
+      Forgot Password?
+    </button>
+
     <p id="message" role="status" aria-live="polite"></p>
   </form>
 
@@ -63,7 +75,9 @@ a{color:#1746a2}
 
 <script>
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
-const SUPABASE_KEY="sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
+
+// Paste your current Supabase Publishable Key here.
+const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
 
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
@@ -72,89 +86,156 @@ const supabaseClient = window.supabase.createClient(
 
 const form = document.getElementById("loginForm");
 const message = document.getElementById("message");
-const button = document.getElementById("loginBtn");
+const loginBtn = document.getElementById("loginBtn");
+const forgotBtn = document.getElementById("forgotBtn");
 
+function showMessage(text, success=false){
+  message.textContent = text;
+  message.style.color = success ? "#087f5b" : "#c0392b";
+}
+
+// FORGOT PASSWORD
+forgotBtn.addEventListener("click", async function(){
+
+  const email = document.getElementById("email").value.trim();
+
+  if(!email){
+    showMessage("Please enter your registered email address first.");
+    document.getElementById("email").focus();
+    return;
+  }
+
+  if(!document.getElementById("email").checkValidity()){
+    showMessage("Please enter a valid email address.");
+    return;
+  }
+
+  forgotBtn.disabled = true;
+  forgotBtn.textContent = "Sending Reset Email...";
+  showMessage("Please wait...");
+
+  try{
+
+    const {error} = await supabaseClient.auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo:
+          "https://babulbalochx-ui.github.io/bzlikely/publisher-reset-password.html"
+      }
+    );
+
+    if(error) throw error;
+
+    showMessage(
+      "If an account exists for this email, a password reset link has been sent. Please check your inbox and spam folder.",
+      true
+    );
+
+  }catch(error){
+
+    showMessage("Password reset error: " + error.message);
+
+  }finally{
+
+    forgotBtn.disabled = false;
+    forgotBtn.textContent = "Forgot Password?";
+
+  }
+});
+
+// NORMAL LOGIN
 form.addEventListener("submit", async function(event) {
+
   event.preventDefault();
 
-  button.disabled = true;
-  button.textContent = "Checking Account...";
-  message.textContent = "Please wait...";
+  loginBtn.disabled = true;
+  loginBtn.textContent = "Checking Account...";
+  showMessage("Please wait...");
 
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value;
 
   try {
-    const { data, error } =
+
+    const {data, error} =
       await supabaseClient.auth.signInWithPassword({
         email,
         password
       });
 
-    if (error) throw error;
+    if(error) throw error;
 
     const user = data.user;
 
-    const { data: publisher, error: statusError } =
+    const {data: publisher, error: statusError} =
       await supabaseClient
         .from("publishers")
         .select("status,is_active")
         .eq("id", user.id)
         .maybeSingle();
 
-    if (statusError) {
+    if(statusError) {
       await supabaseClient.auth.signOut();
       throw new Error("Unable to verify account. Please try again.");
     }
 
-    if (!publisher) {
+    if(!publisher) {
       await supabaseClient.auth.signOut();
-      message.textContent =
-        "Publisher record not found. Please contact BZlikely support.";
+      showMessage(
+        "Publisher record not found. Please contact BZlikely support."
+      );
       return;
     }
 
-    // Check account activation first
-    if (publisher.is_active !== true) {
+    if(publisher.is_active !== true) {
       await supabaseClient.auth.signOut();
-      message.textContent =
-        "Your account is currently deactivated. Please contact BZlikely at bzlikelybusiness@gmail.com.";
+      showMessage(
+        "Your account is currently deactivated. Please contact BZlikely at bzlikelybusiness@gmail.com."
+      );
       return;
     }
 
     const status = (publisher.status || "pending").toLowerCase();
 
-    if (status === "pending") {
+    if(status === "pending") {
       await supabaseClient.auth.signOut();
-      message.textContent =
-        "Your account is pending admin approval.";
+      showMessage("Your account is pending admin approval.");
       return;
     }
 
-    if (status === "rejected") {
+    if(status === "rejected") {
       await supabaseClient.auth.signOut();
-      message.textContent =
-        "Your publisher application has been rejected. Please contact bzlikelybusiness@gmail.com.";
+      showMessage(
+        "Your publisher application has been rejected. Please contact bzlikelybusiness@gmail.com."
+      );
       return;
     }
 
-    if (status === "approved") {
-      message.textContent =
-        "Account approved and active! Opening Publisher Home...";
+    if(status === "approved") {
+      showMessage(
+        "Account approved and active! Opening Publisher Home...",
+        true
+      );
 
       window.location.href = "publisher-home.html";
       return;
     }
 
     await supabaseClient.auth.signOut();
-    message.textContent =
-      "Account status is not recognized. Please contact support.";
 
-  } catch (error) {
-    message.textContent = "Login error: " + error.message;
+    showMessage(
+      "Account status is not recognized. Please contact support."
+    );
+
+  } catch(error) {
+
+    showMessage("Login error: " + error.message);
+
   } finally {
-    button.disabled = false;
-    button.textContent = "Login to Account";
+
+    loginBtn.disabled = false;
+    loginBtn.textContent = "Login to Account";
+
   }
 });
 </script>
