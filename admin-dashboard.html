@@ -25,6 +25,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .logout{background:#555}
 .warningBtn{background:#8b45b5}
 .notificationBtn{background:#1769df}
+.deleteNotification{background:#d93636}
 .stats{display:flex;gap:12px;flex-wrap:wrap}
 .stat{flex:1;min-width:110px}
 .stat h2{font-size:27px;margin:8px 0}
@@ -573,7 +574,14 @@ async function loadPublishers(){
      const msg=document.createElement("p");
      msg.textContent=n.message;
 
-     item.append(type,date,status,title,msg);
+     const deleteButton=document.createElement("button");
+     deleteButton.className="deleteNotification";
+     deleteButton.textContent="Delete Notification";
+     deleteButton.onclick=()=>deletePublisherNotification(
+      n.id,p.id,deleteButton
+     );
+
+     item.append(type,date,status,title,msg,deleteButton);
      notificationBox.appendChild(item);
     });
    }
@@ -602,6 +610,35 @@ function notificationTypeName(type){
   announcement:"General Announcement"
  };
  return names[type]||"Notification";
+}
+
+async function deletePublisherNotification(notificationId,publisherId,button){
+ if(!adminVerified||!adminUserId){
+  alert("Admin verification required.");
+  return;
+ }
+
+ if(!confirm("Are you sure you want to permanently delete this notification? This action cannot be undone.")){
+  return;
+ }
+
+ button.disabled=true;
+ button.textContent="Deleting...";
+
+ const {error}=await db.from("publisher_notifications")
+  .delete()
+  .eq("id",notificationId)
+  .eq("publisher_id",publisherId);
+
+ if(error){
+  alert("Notification deletion failed: "+error.message);
+  button.disabled=false;
+  button.textContent="Delete Notification";
+  return;
+ }
+
+ alert("Notification deleted successfully.");
+ await loadPublishers();
 }
 
 async function sendPublisherNotification(publisherId,typeSelect,titleInput,messageInput,button){
