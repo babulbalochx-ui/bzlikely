@@ -398,9 +398,14 @@ async function addLink(){
 
  try{
   parsed=new URL(url);
-  if(!["http:","https:"].includes(parsed.protocol))throw new Error();
+
+  /* SECURITY: Allow HTTPS only. Reject HTTP and all other protocols. */
+  if(parsed.protocol!=="https:" || !parsed.hostname){
+   throw new Error("Invalid HTTPS URL");
+  }
+
  }catch(e){
-  showMessage("Please enter a valid URL starting with https://");
+  showMessage("Please enter a valid HTTPS URL starting with https://");
   return;
  }
 
