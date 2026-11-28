@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BZlikely | Publisher Home</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f6fa;font-family:Arial,sans-serif;color:#172033;padding-bottom:85px}
@@ -20,7 +21,7 @@ h3{margin-top:0}
 .small{font-size:13px;color:#687386;line-height:1.6}
 input{width:100%;padding:13px;border:1px solid #ccd3df;border-radius:9px;margin:7px 0 13px;font-size:15px}
 button{border:0;border-radius:9px;padding:12px 16px;background:#1769df;color:white;font-size:14px;cursor:pointer}
-button:disabled{opacity:.6}
+button:disabled{opacity:.6;cursor:not-allowed}
 .link-item,.history-item{border:1px solid #e2e6ed;border-radius:10px;padding:13px;margin-top:12px;overflow-wrap:anywhere}
 .link-item a{color:#1769df;word-break:break-all}
 .tracking-url{font-size:13px;color:#1769df;overflow-wrap:anywhere;margin:8px 0}
@@ -55,6 +56,8 @@ nav span{display:block;font-size:20px;margin-bottom:3px}
 .warning-error{color:#c62828;font-size:13px;overflow-wrap:anywhere}
 .notification-type{display:inline-block;font-size:11px;font-weight:bold;padding:5px 9px;border-radius:20px;background:#e8efff;color:#2455a0;margin:0 0 8px 7px}
 .notification-title{font-size:15px;margin:12px 0 5px}
+.generated-box{display:none;background:#eef8f1;border:1px solid #b9dfc5;border-radius:10px;padding:13px;margin-top:15px}
+.generated-box strong{color:#21733a}
 footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 @media(max-width:380px){
  nav button{font-size:10px}
@@ -63,6 +66,7 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 }
 </style>
 </head>
+
 <body>
 
 <header>
@@ -75,18 +79,27 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 
 <section id="links" class="section active">
  <div class="card">
-  <h3>My Affiliate Links</h3>
-  <p class="small">Add and manage your affiliate links.</p>
-  <label>Product / Link Title</label>
-  <input id="linkTitle" placeholder="Example: Walmart Shoes">
-  <label>Affiliate URL</label>
-  <input id="linkUrl" type="url" placeholder="https://example.com/your-link">
-  <button id="addBtn" onclick="addLink()">Add Link</button>
+  <h3>Generate Tracking Link</h3>
+  <p class="small">Paste your affiliate product URL below. BZlikely will create a tracking link for you.</p>
+
+  <label for="linkUrl">Product / Affiliate URL</label>
+  <input id="linkUrl" type="url" placeholder="https://www.example.com/product">
+
+  <button id="addBtn" onclick="addLink()">Generate Tracking Link</button>
+
   <div id="message"></div>
+
+  <div id="generatedResult" class="generated-box">
+   <strong>Your tracking link is ready!</strong>
+   <p class="small">Copy and share this link with your audience.</p>
+   <div id="generatedUrl" class="tracking-url"></div>
+   <button id="generatedCopyBtn" class="copy" onclick="copyGeneratedLink()">Copy Tracking Link</button>
+  </div>
  </div>
+
  <div class="card">
-  <h3>Saved Links</h3>
-  <p class="small">Each product shows its own tracked clicks.</p>
+  <h3>My Affiliate Links</h3>
+  <p class="small">Each saved product has its own tracking link and click count.</p>
   <div id="linkList">Loading links...</div>
  </div>
 </section>
@@ -178,9 +191,13 @@ const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
 
 const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
+/* Always generate tracking links on the Cloudflare Pages domain */
+const TRACKING_BASE_URL = "https://bzlikely.pages.dev/go.html";
+
 let currentUser = null;
 let selectedPeriod = "today";
 let accountVerified = false;
+let latestGeneratedUrl = "";
 
 function showTab(id,btn){
  if(!accountVerified)return;
@@ -298,62 +315,135 @@ async function start(){
  }
 }
 
+/* Create tracking URL on the official Cloudflare Pages address */
 function makeTrackingUrl(linkId){
- const url=new URL("go.html",window.location.href);
+ const url=new URL(TRACKING_BASE_URL);
  url.searchParams.set("id",linkId);
  return url.href;
 }
 
-async function copyTrackingLink(url,button){
+/* Extract a readable product title from common product URLs */
+function extractProductTitle(rawUrl){
  try{
-  await navigator.clipboard.writeText(url);
-  button.textContent="Copied!";
-  setTimeout(()=>button.textContent="Copy Tracking Link",2000);
+  const parsed=new URL(rawUrl);
+  let path=decodeURIComponent(parsed.pathname);
+  let title="";
+
+  if(parsed.hostname.toLowerCase().includes("walmart.com")){
+   const match=path.match(/\/ip\/([^/]+)/i);
+   if(match)title=match[1];
+  }
+
+  if(!title){
+   const parts=path.split("/").filter(Boolean);
+   title=parts.length?parts[parts.length-1]:"";
+  }
+
+  title=title
+   .replace(/\.(html?|php)$/i,"")
+   .replace(/[-_]+/g," ")
+   .replace(/\s+/g," ")
+   .trim();
+
+  if(!title||/^\d+$/.test(title)){
+   title=parsed.hostname.replace(/^www\./i,"");
+  }
+
+  return title
+   .split(" ")
+   .map(word=>word.charAt(0).toUpperCase()+word.slice(1))
+   .join(" ");
+
  }catch(error){
-  alert("Copy failed. Please copy this link manually:\n"+url);
+  return "Affiliate Product";
  }
+}
+
+async function copyText(text,button,originalLabel){
+ try{
+  await navigator.clipboard.writeText(text);
+  button.textContent="Copied!";
+  setTimeout(()=>button.textContent=originalLabel,2000);
+ }catch(error){
+  alert("Copy failed. Please copy this link manually:\n"+text);
+ }
+}
+
+async function copyGeneratedLink(){
+ if(!latestGeneratedUrl)return;
+ const button=document.getElementById("generatedCopyBtn");
+ await copyText(latestGeneratedUrl,button,"Copy Tracking Link");
+}
+
+async function copyTrackingLink(url,button){
+ await copyText(url,button,"Copy Tracking Link");
 }
 
 async function addLink(){
  if(!accountVerified||!currentUser)return;
 
- const title=document.getElementById("linkTitle").value.trim();
  const url=document.getElementById("linkUrl").value.trim();
  const btn=document.getElementById("addBtn");
+ const resultBox=document.getElementById("generatedResult");
 
- if(!title||!url){
-  showMessage("Please enter title and URL.");
+ resultBox.style.display="none";
+ latestGeneratedUrl="";
+
+ if(!url){
+  showMessage("Please paste a product or affiliate URL.");
   return;
  }
 
+ let parsed;
+
  try{
-  const parsed=new URL(url);
+  parsed=new URL(url);
   if(!["http:","https:"].includes(parsed.protocol))throw new Error();
  }catch(e){
   showMessage("Please enter a valid URL starting with https://");
   return;
  }
 
- btn.disabled=true;
- showMessage("Saving link...");
-
- const {error}=await db.from("publisher_links").insert({
-  publisher_id:currentUser.id,
-  title:title,
-  affiliate_url:url
- });
-
- btn.disabled=false;
-
- if(error){
-  showMessage("Error: "+error.message);
+ if(parsed.username||parsed.password){
+  showMessage("URLs containing usernames or passwords are not allowed.");
   return;
  }
 
- document.getElementById("linkTitle").value="";
- document.getElementById("linkUrl").value="";
- showMessage("Link saved successfully!");
- await loadLinks();
+ const title=extractProductTitle(url);
+
+ btn.disabled=true;
+ btn.textContent="Generating...";
+ showMessage("Saving your product link...");
+
+ try{
+  const {data,error}=await db.from("publisher_links")
+   .insert({
+    publisher_id:currentUser.id,
+    title:title,
+    affiliate_url:url
+   })
+   .select("id")
+   .single();
+
+  if(error)throw error;
+
+  latestGeneratedUrl=makeTrackingUrl(data.id);
+
+  document.getElementById("generatedUrl").textContent=latestGeneratedUrl;
+  resultBox.style.display="block";
+
+  document.getElementById("linkUrl").value="";
+  showMessage("Tracking link generated successfully!");
+
+  await loadLinks();
+
+ }catch(error){
+  console.error("Link generation error:",error);
+  showMessage("Could not generate tracking link: "+error.message);
+ }finally{
+  btn.disabled=false;
+  btn.textContent="Generate Tracking Link";
+ }
 }
 
 async function loadLinks(){
@@ -377,7 +467,7 @@ async function loadLinks(){
   return;
  }
 
- list.innerHTML="";
+ list.replaceChildren();
 
  for(const item of data){
   const box=document.createElement("div");
@@ -527,7 +617,7 @@ async function loadClickHistory(){
   return;
  }
 
- history.innerHTML="";
+ history.replaceChildren();
 
  data.forEach(click=>{
   const item=document.createElement("div");
