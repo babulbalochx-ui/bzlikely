@@ -10,17 +10,40 @@
 <style>
 *{box-sizing:border-box}
 body{
- font-family:Arial,sans-serif;background:#f4f6fa;color:#172033;
- display:flex;align-items:center;justify-content:center;
- min-height:100vh;margin:0;text-align:center
+ font-family:Arial,sans-serif;
+ background:#f4f6fa;
+ color:#172033;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ min-height:100vh;
+ margin:0;
+ text-align:center
 }
 .box{
- background:white;padding:30px;border-radius:14px;
- max-width:360px;width:calc(100% - 40px);
+ background:white;
+ padding:30px;
+ border-radius:14px;
+ max-width:420px;
+ width:calc(100% - 40px);
  box-shadow:0 5px 25px #00000012
 }
 h2{color:#1746a2}
-p{line-height:1.6;color:#667085;overflow-wrap:anywhere}
+p{
+ line-height:1.6;
+ color:#667085;
+ overflow-wrap:anywhere
+}
+#error{
+ color:#b42318;
+ font-size:13px;
+ text-align:left;
+ background:#fef3f2;
+ padding:12px;
+ border-radius:8px;
+ display:none;
+ white-space:pre-wrap
+}
 </style>
 </head>
 
@@ -30,6 +53,7 @@ p{line-height:1.6;color:#667085;overflow-wrap:anywhere}
  <p id="message" role="status" aria-live="polite">
   Please wait. Redirecting...
  </p>
+ <p id="error"></p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -38,34 +62,45 @@ p{line-height:1.6;color:#667085;overflow-wrap:anywhere}
 const SUPABASE_URL="https://acnpjyluvhvckrncqkyz.supabase.co";
 const SUPABASE_KEY="sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VaGIXaZ";
 
-const db=window.supabase.createClient(
- SUPABASE_URL,
- SUPABASE_KEY
-);
-
 const message=document.getElementById("message");
+const errorBox=document.getElementById("error");
 
 async function redirectVisitor(){
- const params=new URLSearchParams(window.location.search);
- const linkId=params.get("id");
-
- if(!linkId||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(linkId)){
-  message.textContent="Invalid tracking link.";
-  return;
- }
 
  try{
-  const {data,error}=await db.rpc("track_publisher_link",{
-   p_link_id:linkId
-  });
+
+  if(!window.supabase){
+   throw new Error("Supabase library failed to load.");
+  }
+
+  const db=window.supabase.createClient(
+   SUPABASE_URL,
+   SUPABASE_KEY
+  );
+
+  const params=new URLSearchParams(window.location.search);
+  const linkId=params.get("id");
+
+  if(!linkId||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(linkId)){
+   throw new Error("Invalid tracking link ID.");
+  }
+
+  message.textContent="Checking tracking link...";
+
+  const {data,error}=await db.rpc(
+   "track_publisher_link",
+   {p_link_id:linkId}
+  );
 
   if(error){
-   throw error;
+   throw new Error(
+    "Database RPC error: "+error.message+
+    (error.code?" | Code: "+error.code:"")
+   );
   }
 
   if(typeof data!=="string"||!data.trim()){
-   message.textContent="This link is unavailable.";
-   return;
+   throw new Error("Database returned an empty destination URL.");
   }
 
   let destination;
@@ -73,26 +108,31 @@ async function redirectVisitor(){
   try{
    destination=new URL(data);
   }catch{
-   message.textContent="Invalid destination link.";
-   return;
+   throw new Error("Invalid destination URL returned by database.");
   }
 
   if(destination.protocol!=="https:"&&destination.protocol!=="http:"){
-   message.textContent="This destination is not allowed.";
-   return;
+   throw new Error("Destination protocol is not allowed.");
   }
 
   if(destination.username||destination.password){
-   message.textContent="This destination is not allowed.";
-   return;
+   throw new Error("Destination URL contains forbidden credentials.");
   }
 
-  message.textContent="Redirecting you now...";
+  message.textContent="Redirecting you to the destination...";
+
   window.location.replace(destination.href);
 
  }catch(error){
+
   console.error("BZlikely tracking error:",error);
-  message.textContent="Unable to open this link. Please try again later.";
+
+  message.textContent="Tracking link could not be opened.";
+
+  errorBox.style.display="block";
+  errorBox.textContent=
+   "DEBUG ERROR:\n"+
+   (error.message||String(error));
  }
 }
 
