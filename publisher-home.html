@@ -35,11 +35,30 @@ button:disabled{opacity:.6}
 .report-buttons{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0}
 .report-buttons button{flex:1;min-width:90px;background:#e9eef7;color:#263b5b}
 .report-buttons button.active{background:#1769df;color:white}
-nav{position:fixed;bottom:0;left:0;right:0;background:white;display:flex;justify-content:space-around;padding:10px 3px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -2px 12px #00000012}
-nav button{background:white;color:#536078;padding:8px 4px;font-size:12px;flex:1}
+nav{position:fixed;bottom:0;left:0;right:0;background:white;display:flex;justify-content:space-around;padding:10px 3px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -2px 12px #00000012;z-index:10}
+nav button{background:white;color:#536078;padding:8px 2px;font-size:11px;flex:1;position:relative}
 nav button.active{color:#1769df;font-weight:bold}
 nav span{display:block;font-size:20px;margin-bottom:3px}
+.nav-badge{
+ position:absolute;top:0;right:12%;
+ min-width:17px;height:17px;padding:0 4px;
+ border-radius:20px;background:#e53935;color:white;
+ font-size:10px;font-weight:bold;line-height:17px;
+ display:none
+}
+.warning-item{border:1px solid #e2e6ed;border-radius:10px;padding:15px;margin-top:12px;background:white;overflow-wrap:anywhere}
+.warning-item.unread{border-left:4px solid #e49a16;background:#fffaf0}
+.warning-status{display:inline-block;font-size:11px;font-weight:bold;padding:5px 9px;border-radius:20px;background:#fff0cf;color:#8a5700}
+.warning-status.read{background:#e4f5e9;color:#21733a}
+.warning-date{font-size:12px;color:#687386}
+.warning-message{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;margin:12px 0}
+.warning-error{color:#c62828;font-size:13px;overflow-wrap:anywhere}
 footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
+@media(max-width:380px){
+ nav button{font-size:10px}
+ nav span{font-size:18px}
+ .nav-badge{right:5%}
+}
 </style>
 </head>
 <body>
@@ -51,80 +70,105 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 </header>
 
 <main>
+
 <section id="links" class="section active">
-<div class="card">
-<h3>My Affiliate Links</h3>
-<p class="small">Add and manage your affiliate links.</p>
-<label>Product / Link Title</label>
-<input id="linkTitle" placeholder="Example: Walmart Shoes">
-<label>Affiliate URL</label>
-<input id="linkUrl" type="url" placeholder="https://example.com/your-link">
-<button id="addBtn" onclick="addLink()">Add Link</button>
-<div id="message"></div>
-</div>
-<div class="card">
-<h3>Saved Links</h3>
-<p class="small">Each product shows its own tracked clicks.</p>
-<div id="linkList">Loading links...</div>
-</div>
+ <div class="card">
+  <h3>My Affiliate Links</h3>
+  <p class="small">Add and manage your affiliate links.</p>
+  <label>Product / Link Title</label>
+  <input id="linkTitle" placeholder="Example: Walmart Shoes">
+  <label>Affiliate URL</label>
+  <input id="linkUrl" type="url" placeholder="https://example.com/your-link">
+  <button id="addBtn" onclick="addLink()">Add Link</button>
+  <div id="message"></div>
+ </div>
+ <div class="card">
+  <h3>Saved Links</h3>
+  <p class="small">Each product shows its own tracked clicks.</p>
+  <div id="linkList">Loading links...</div>
+ </div>
 </section>
 
 <section id="dashboard" class="section">
-<div class="card">
-<h3>Publisher Dashboard</h3>
-<p>Welcome to your BZlikely publisher account.</p>
-<p class="small">Select report period</p>
-<div class="report-buttons">
-<button class="active" onclick="changePeriod('today',this)">Today</button>
-<button onclick="changePeriod('7days',this)">Last 7 Days</button>
-<button onclick="changePeriod('30days',this)">Last 30 Days</button>
-</div>
-<p class="small" id="periodLabel">Today's tracked clicks</p>
-<div class="stat" id="clickCount">Loading...</div>
-<p class="small">Clicks recorded through your BZlikely tracking links. Sales and earnings tracking are not yet connected.</p>
-<button onclick="refreshDashboard()">Refresh Report</button>
-</div>
-<div class="card">
-<h3>Click History</h3>
-<p class="small">Recent clicks for the selected period, with date and time.</p>
-<div id="clickHistory">Loading history...</div>
-</div>
+ <div class="card">
+  <h3>Publisher Dashboard</h3>
+  <p>Welcome to your BZlikely publisher account.</p>
+  <p class="small">Select report period</p>
+  <div class="report-buttons">
+   <button class="active" onclick="changePeriod('today',this)">Today</button>
+   <button onclick="changePeriod('7days',this)">Last 7 Days</button>
+   <button onclick="changePeriod('30days',this)">Last 30 Days</button>
+  </div>
+  <p class="small" id="periodLabel">Today's tracked clicks</p>
+  <div class="stat" id="clickCount">Loading...</div>
+  <p class="small">Clicks recorded through your BZlikely tracking links. Sales and earnings tracking are not yet connected.</p>
+  <button onclick="refreshDashboard()">Refresh Report</button>
+ </div>
+ <div class="card">
+  <h3>Click History</h3>
+  <p class="small">Recent clicks for the selected period, with date and time.</p>
+  <div id="clickHistory">Loading history...</div>
+ </div>
 </section>
 
 <section id="payments" class="section">
-<div class="card">
-<h3>Payments</h3>
-<p>Payment system is coming soon.</p>
-<p class="small">Payment information is not available yet.</p>
-<button onclick="location.href='publisher-payments.html'">Open Payments</button>
-</div>
+ <div class="card">
+  <h3>Payments</h3>
+  <p>Payment system is coming soon.</p>
+  <p class="small">Payment information is not available yet.</p>
+  <button onclick="location.href='publisher-payments.html'">Open Payments</button>
+ </div>
+</section>
+
+<!-- Notifications section -->
+<section id="notifications" class="section">
+ <div class="card">
+  <h3>Notifications</h3>
+  <p class="small">Official messages and warnings from BZlikely administration.</p>
+  <p id="notificationSummary" class="small">Loading notifications...</p>
+  <div id="notificationList"></div>
+  <p id="notificationError" class="warning-error"></p>
+  <button onclick="refreshNotifications()">Refresh Notifications</button>
+ </div>
 </section>
 
 <section id="profile" class="section">
-<div class="card">
-<h3>My Profile</h3>
-<p id="profileName"></p>
-<p id="profileEmail"></p>
-<button onclick="location.href='publisher-profile.html'">Edit Profile</button>
-<br>
-<button class="delete" onclick="logout()">Logout</button>
-</div>
+ <div class="card">
+  <h3>My Profile</h3>
+  <p id="profileName"></p>
+  <p id="profileEmail"></p>
+  <button onclick="location.href='publisher-profile.html'">Edit Profile</button>
+  <br>
+  <button class="delete" onclick="logout()">Logout</button>
+ </div>
 </section>
 
 <div class="card" id="errorCard" hidden>
-<h3>Account Access Restricted</h3>
-<p id="accountError"></p>
-<button class="delete" onclick="logout()">Return to Login</button>
+ <h3>Account Access Restricted</h3>
+ <p id="accountError"></p>
+ <button class="delete" onclick="logout()">Return to Login</button>
 </div>
 
 <footer>© 2026 BZlikely. All rights reserved.</footer>
 </main>
 
 <nav hidden>
-<button class="active" onclick="showTab('links',this)"><span>🔗</span>Links</button>
-<button onclick="showTab('dashboard',this)"><span>📊</span>Dashboard</button>
-<button onclick="showTab('payments',this)"><span>💳</span>Payments</button>
-<button onclick="showTab('profile',this)"><span>👤</span>Profile</button>
+ <button class="active" onclick="showTab('links',this)">
+  <span>🔗</span>Links
+ </button>
+ <button onclick="showTab('dashboard',this)">
+  <span>📊</span>Dashboard
+ </button>
+ <button onclick="showTab('payments',this)">
+  <span>💳</span>Payments
+ </button>
+ <button onclick="showTab('notifications',this)">
+  <span>🔔</span>Notifications
+  <b id="notificationBadge" class="nav-badge">0</b>
+ </button>
+ <button onclick="showTab('profile',this)">
+  <span>👤</span>Profile
+ </button>
 </nav>
 
 <script>
@@ -132,6 +176,7 @@ const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VqAGIXaZ";
 
 const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
 let currentUser = null;
 let selectedPeriod = "today";
 let accountVerified = false;
@@ -146,6 +191,8 @@ function showTab(id,btn){
 
  if(id==="links")loadLinks();
  if(id==="dashboard")refreshDashboard();
+ if(id==="notifications")loadNotifications();
+
  window.scrollTo(0,0);
 }
 
@@ -230,13 +277,19 @@ async function start(){
 
   accountVerified=true;
   const name=profile.full_name||"Publisher";
+
   document.getElementById("welcome").textContent="Welcome, "+name;
   document.getElementById("profileName").textContent="Name: "+name;
-  document.getElementById("profileEmail").textContent="Email: "+(currentUser.email||profile.email||"Not available");
+  document.getElementById("profileEmail").textContent=
+   "Email: "+(currentUser.email||profile.email||"Not available");
 
   document.getElementById("links").classList.add("active");
   document.querySelector("nav").hidden=false;
-  await loadLinks();
+
+  await Promise.all([
+   loadLinks(),
+   updateNotificationBadge()
+  ]);
 
  }catch(error){
   showVerificationError("Unexpected verification error",
@@ -361,6 +414,7 @@ async function loadLinks(){
   countBox.textContent="Loading product clicks...";
 
   const result=await getProductClicks(item.id);
+
   if(result.countError){
    countBox.textContent="Product clicks unavailable";
   }else{
@@ -408,9 +462,11 @@ function getPeriodStart(){
 
 function changePeriod(period,button){
  if(!accountVerified)return;
+
  selectedPeriod=period;
  document.querySelectorAll(".report-buttons button")
   .forEach(b=>b.classList.remove("active"));
+
  button.classList.add("active");
 
  const labels={
@@ -471,6 +527,7 @@ async function loadClickHistory(){
  }
 
  history.innerHTML="";
+
  data.forEach(click=>{
   const item=document.createElement("div");
   item.className="history-item";
@@ -509,6 +566,135 @@ async function deleteLink(id){
  }
 
  await loadLinks();
+}
+
+/* Notifications */
+
+async function updateNotificationBadge(){
+ if(!accountVerified||!currentUser)return;
+
+ const badge=document.getElementById("notificationBadge");
+
+ const {count,error}=await db
+  .from("publisher_warnings")
+  .select("id",{count:"exact",head:true})
+  .eq("publisher_id",currentUser.id)
+  .eq("is_read",false);
+
+ if(error){
+  badge.style.display="none";
+  console.error("Notification badge error:",error.message);
+  return;
+ }
+
+ if(count>0){
+  badge.textContent=count>99?"99+":String(count);
+  badge.style.display="block";
+ }else{
+  badge.style.display="none";
+ }
+}
+
+async function loadNotifications(){
+ if(!accountVerified||!currentUser)return;
+
+ const list=document.getElementById("notificationList");
+ const summary=document.getElementById("notificationSummary");
+ const errorBox=document.getElementById("notificationError");
+
+ list.replaceChildren();
+ errorBox.textContent="";
+ summary.textContent="Loading notifications...";
+
+ const {data,error}=await db
+  .from("publisher_warnings")
+  .select("id,warning_message,created_at,is_read")
+  .eq("publisher_id",currentUser.id)
+  .order("created_at",{ascending:false});
+
+ if(error){
+  summary.textContent="Notifications unavailable";
+  errorBox.textContent="Could not load notifications: "+error.message;
+  return;
+ }
+
+ if(!data||data.length===0){
+  summary.textContent="0 notifications";
+  const empty=document.createElement("p");
+  empty.className="small";
+  empty.textContent="You have no official warnings or notifications.";
+  list.appendChild(empty);
+  await updateNotificationBadge();
+  return;
+ }
+
+ const unread=data.filter(item=>item.is_read===false).length;
+ summary.textContent=data.length+" notification(s) | "+unread+" unread";
+
+ data.forEach(item=>{
+  const card=document.createElement("div");
+  card.className="warning-item"+(item.is_read?"":" unread");
+
+  const status=document.createElement("span");
+  status.className="warning-status"+(item.is_read?" read":"");
+  status.textContent=item.is_read?"READ":"UNREAD";
+
+  const date=document.createElement("p");
+  date.className="warning-date";
+  date.textContent="Received: "+new Date(item.created_at).toLocaleString();
+
+  const message=document.createElement("p");
+  message.className="warning-message";
+  message.textContent=item.warning_message;
+
+  card.append(status,date,message);
+
+  if(!item.is_read){
+   const button=document.createElement("button");
+   button.textContent="Mark as Read";
+
+   button.onclick=async()=>{
+    button.disabled=true;
+    button.textContent="Updating...";
+
+    const {data:updateData,error:updateError}=await db
+     .from("publisher_warnings")
+     .update({is_read:true})
+     .eq("id",item.id)
+     .eq("publisher_id",currentUser.id)
+     .eq("is_read",false)
+     .select("id")
+     .maybeSingle();
+
+    if(updateError){
+     button.disabled=false;
+     button.textContent="Mark as Read";
+     errorBox.textContent="Could not update notification: "+updateError.message;
+     return;
+    }
+
+    if(!updateData){
+     button.disabled=false;
+     button.textContent="Mark as Read";
+     errorBox.textContent="Notification was not updated. Refresh and try again.";
+     return;
+    }
+
+    await loadNotifications();
+    await updateNotificationBadge();
+   };
+
+   card.appendChild(button);
+  }
+
+  list.appendChild(card);
+ });
+
+ await updateNotificationBadge();
+}
+
+async function refreshNotifications(){
+ await loadNotifications();
 }
 
 async function logout(){
