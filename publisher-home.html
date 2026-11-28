@@ -53,6 +53,8 @@ nav span{display:block;font-size:20px;margin-bottom:3px}
 .warning-date{font-size:12px;color:#687386}
 .warning-message{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;margin:12px 0}
 .warning-error{color:#c62828;font-size:13px;overflow-wrap:anywhere}
+.notification-type{display:inline-block;font-size:11px;font-weight:bold;padding:5px 9px;border-radius:20px;background:#e8efff;color:#2455a0;margin:0 0 8px 7px}
+.notification-title{font-size:15px;margin:12px 0 5px}
 footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
 @media(max-width:380px){
  nav button{font-size:10px}
@@ -120,7 +122,6 @@ footer{text-align:center;color:#98a2b3;font-size:12px;padding:20px}
  </div>
 </section>
 
-<!-- Notifications section -->
 <section id="notifications" class="section">
  <div class="card">
   <h3>Notifications</h3>
@@ -568,24 +569,43 @@ async function deleteLink(id){
  await loadLinks();
 }
 
-/* Notifications */
+/* Notifications: legacy warnings + new admin notifications */
+
+function getNotificationTypeName(type){
+ const names={
+  warning:"Warning",
+  account:"Account",
+  payment:"Payment",
+  announcement:"General Announcement"
+ };
+ return names[type]||"Notification";
+}
 
 async function updateNotificationBadge(){
  if(!accountVerified||!currentUser)return;
 
  const badge=document.getElementById("notificationBadge");
 
- const {count,error}=await db
-  .from("publisher_warnings")
-  .select("id",{count:"exact",head:true})
-  .eq("publisher_id",currentUser.id)
-  .eq("is_read",false);
+ const [warningsResult,notificationsResult]=await Promise.all([
+  db.from("publisher_warnings")
+   .select("id",{count:"exact",head:true})
+   .eq("publisher_id",currentUser.id)
+   .eq("is_read",false),
 
- if(error){
+  db.from("publisher_notifications")
+   .select("id",{count:"exact",head:true})
+   .eq("publisher_id",currentUser.id)
+   .eq("is_read",false)
+ ]);
+
+ if(warningsResult.error||notificationsResult.error){
   badge.style.display="none";
-  console.error("Notification badge error:",error.message);
+  console.error("Notification badge error:",
+   warningsResult.error?.message||notificationsResult.error?.message);
   return;
  }
+
+ const count=(warningsResult.count||0)+(notificationsResult.count||0);
 
  if(count>0){
   badge.textContent=count>99?"99+":String(count);
@@ -606,19 +626,61 @@ async function loadNotifications(){
  errorBox.textContent="";
  summary.textContent="Loading notifications...";
 
- const {data,error}=await db
-  .from("publisher_warnings")
-  .select("id,warning_message,created_at,is_read")
-  .eq("publisher_id",currentUser.id)
-  .order("created_at",{ascending:false});
+ const [warningsResult,notificationsResult]=await Promise.all([
+  db.from("publisher_warnings")
+   .select("id,warning_message,created_at,is_read")
+   .eq("publisher_id",currentUser.id)
+   .order("created_at",{ascending:false}),
 
- if(error){
-  summary.textContent="Notifications unavailable";
-  errorBox.textContent="Could not load notifications: "+error.message;
+  db.from("publisher_notifications")
+   .select("id,notification_type,title,message,created_at,is_read")
+   .eq("publisher_id",currentUser.id)
+   .order("created_at",{ascending:false})
+ ]);
+
+ if(warningsResult.error||notificationsResult.error){
+  summary.textContent="Some notifications could not be loaded.";
+
+  const errors=[];
+  if(warningsResult.error){
+   errors.push("Warnings: "+warningsResult.error.message);
+  }
+  if(notificationsResult.error){
+   errors.push("New notifications: "+notificationsResult.error.message);
+  }
+
+  errorBox.textContent=errors.join(" | ");
+  await updateNotificationBadge();
   return;
  }
 
- if(!data||data.length===0){
+ const warnings=(warningsResult.data||[]).map(item=>({
+  id:item.id,
+  source:"publisher_warnings",
+  type:"warning",
+  title:"Official Warning",
+  message:item.warning_message,
+  created_at:item.created_at,
+  is_read:item.is_read
+ }));
+
+ const newNotifications=(notificationsResult.data||[]).map(item=>({
+  id:item.id,
+  source:"publisher_notifications",
+  type:item.notification_type,
+  title:item.title,
+  message:item.message,
+  created_at:item.created_at,
+  is_read:item.is_read
+ }));
+
+ const allNotifications=[...warnings,...newNotifications];
+
+ allNotifications.sort((a,b)=>
+  new Date(b.created_at).getTime()-new Date(a.created_at).getTime()
+ );
+
+ if(allNotifications.length===0){
   summary.textContent="0 notifications";
   const empty=document.createElement("p");
   empty.className="small";
@@ -628,10 +690,11 @@ async function loadNotifications(){
   return;
  }
 
- const unread=data.filter(item=>item.is_read===false).length;
- summary.textContent=data.length+" notification(s) | "+unread+" unread";
+ const unread=allNotifications.filter(item=>item.is_read===false).length;
+ summary.textContent=allNotifications.length+
+  " notification(s) | "+unread+" unread";
 
- data.forEach(item=>{
+ allNotifications.forEach(item=>{
   const card=document.createElement("div");
   card.className="warning-item"+(item.is_read?"":" unread");
 
@@ -639,15 +702,23 @@ async function loadNotifications(){
   status.className="warning-status"+(item.is_read?" read":"");
   status.textContent=item.is_read?"READ":"UNREAD";
 
+  const type=document.createElement("span");
+  type.className="notification-type";
+  type.textContent=getNotificationTypeName(item.type);
+
+  const title=document.createElement("h4");
+  title.className="notification-title";
+  title.textContent=item.title||"Official Warning";
+
   const date=document.createElement("p");
   date.className="warning-date";
   date.textContent="Received: "+new Date(item.created_at).toLocaleString();
 
   const message=document.createElement("p");
   message.className="warning-message";
-  message.textContent=item.warning_message;
+  message.textContent=item.message||"";
 
-  card.append(status,date,message);
+  card.append(status,type,title,date,message);
 
   if(!item.is_read){
    const button=document.createElement("button");
@@ -656,9 +727,10 @@ async function loadNotifications(){
    button.onclick=async()=>{
     button.disabled=true;
     button.textContent="Updating...";
+    errorBox.textContent="";
 
     const {data:updateData,error:updateError}=await db
-     .from("publisher_warnings")
+     .from(item.source)
      .update({is_read:true})
      .eq("id",item.id)
      .eq("publisher_id",currentUser.id)
