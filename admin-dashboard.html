@@ -12,7 +12,7 @@ body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033;padd
 .container{max-width:900px;margin:auto}
 header{background:#142b52;color:white;padding:20px;border-radius:13px}
 .card{background:white;padding:18px;border-radius:12px;margin-top:16px;box-shadow:0 2px 10px #0000000b}
-input,textarea{width:100%;padding:12px;margin:8px 0;border:1px solid #ccd3df;border-radius:7px;font-family:Arial,sans-serif}
+input,textarea,select{width:100%;padding:12px;margin:8px 0;border:1px solid #ccd3df;border-radius:7px;font-family:Arial,sans-serif}
 textarea{min-height:85px;resize:vertical}
 button{border:0;padding:11px 15px;border-radius:7px;color:white;cursor:pointer;margin:8px 5px 0 0}
 button:disabled{opacity:.5;cursor:not-allowed}
@@ -24,6 +24,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .activate{background:#16834b}
 .logout{background:#555}
 .warningBtn{background:#8b45b5}
+.notificationBtn{background:#1769df}
 .stats{display:flex;gap:12px;flex-wrap:wrap}
 .stat{flex:1;min-width:110px}
 .stat h2{font-size:27px;margin:8px 0}
@@ -35,7 +36,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 #message{margin-top:12px;color:#1769df;overflow-wrap:anywhere}
 #errorBox{background:#fff0f0;color:#a00000;padding:15px;border-radius:9px;margin-top:15px;overflow-wrap:anywhere;white-space:pre-wrap}
 .hidden{display:none}
-.paymentControls,.publisherControls,.warningControls{border-top:1px solid #dce2eb;margin-top:12px;padding-top:10px}
+.paymentControls,.publisherControls,.warningControls,.notificationControls{border-top:1px solid #dce2eb;margin-top:12px;padding-top:10px}
 .reasonBox{background:#fff8e8;border:1px solid #ead9a7;padding:12px;border-radius:8px;margin-top:12px}
 .reasonBox label{font-weight:bold}
 .warningControls{background:#faf6ff;padding:12px;border-radius:9px;margin-top:14px}
@@ -46,6 +47,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .warningUnread{color:#a04a00;font-weight:bold}
 .warningRead{color:#16834b;font-weight:bold}
 .warningError{color:#b00020;font-size:13px;margin-top:8px;white-space:pre-wrap}
+.notificationControls{background:#f0f6ff;padding:12px;border-radius:9px;margin-top:14px}
+.notificationControls h4{margin:3px 0 8px;color:#174e91}
+.notificationItem{background:white;border:1px solid #d5e2f5;border-radius:8px;padding:11px;margin-top:9px;overflow-wrap:anywhere}
+.notificationItem p{white-space:pre-wrap;margin:7px 0}
+.notificationMeta{font-size:12px;color:#687386;margin:5px 0}
+.notificationUnread{color:#a04a00;font-weight:bold}
+.notificationRead{color:#16834b;font-weight:bold}
+.notificationError{color:#b00020;font-size:13px;margin-top:8px;white-space:pre-wrap}
 </style>
 </head>
 <body>
@@ -227,7 +236,7 @@ async function loadPublishers(){
   return;
  }
 
- message.textContent="Loading bank details and warnings...";
+ message.textContent="Loading bank details and notifications...";
 
  const {data:payments,error:paymentError}=await db
   .from("publisher_payment_methods")
@@ -250,6 +259,21 @@ async function loadPublishers(){
     warningMap.set(item.publisher_id,[]);
    }
    warningMap.get(item.publisher_id).push(item);
+  });
+ }
+
+ const {data:notifications,error:notificationLoadError}=await db
+  .from("publisher_notifications")
+  .select("id,publisher_id,admin_id,notification_type,title,message,created_at,is_read")
+  .order("created_at",{ascending:false});
+
+ const notificationMap=new Map();
+ if(!notificationLoadError&&notifications){
+  notifications.forEach(item=>{
+   if(!notificationMap.has(item.publisher_id)){
+    notificationMap.set(item.publisher_id,[]);
+   }
+   notificationMap.get(item.publisher_id).push(item);
   });
  }
 
@@ -374,7 +398,7 @@ async function loadPublishers(){
 
   box.appendChild(publisherControls);
 
-  // WARNING SYSTEM
+  // OLD WARNING SYSTEM - PRESERVED
 
   const warningBox=document.createElement("div");
   warningBox.className="warningControls";
@@ -385,7 +409,7 @@ async function loadPublishers(){
 
   const warningInfo=document.createElement("p");
   warningInfo.className="small";
-  warningInfo.textContent="Send an official warning to this publisher. It will appear in their publisher account.";
+  warningInfo.textContent="Send an official warning using the existing warning system.";
   warningBox.appendChild(warningInfo);
 
   const warningInput=document.createElement("textarea");
@@ -443,6 +467,119 @@ async function loadPublishers(){
   }
 
   box.appendChild(warningBox);
+
+  // NEW GENERAL NOTIFICATION SYSTEM
+
+  const notificationBox=document.createElement("div");
+  notificationBox.className="notificationControls";
+
+  const notificationHeading=document.createElement("h4");
+  notificationHeading.textContent="Publisher Notification System";
+  notificationBox.appendChild(notificationHeading);
+
+  const notificationInfo=document.createElement("p");
+  notificationInfo.className="small";
+  notificationInfo.textContent="Send an account update, payment update, warning or general announcement to this publisher.";
+  notificationBox.appendChild(notificationInfo);
+
+  const typeLabel=document.createElement("label");
+  typeLabel.textContent="Notification Type";
+  notificationBox.appendChild(typeLabel);
+
+  const typeSelect=document.createElement("select");
+
+  [
+   ["warning","Warning"],
+   ["account","Account Update"],
+   ["payment","Payment Update"],
+   ["announcement","General Announcement"]
+  ].forEach(option=>{
+   const opt=document.createElement("option");
+   opt.value=option[0];
+   opt.textContent=option[1];
+   typeSelect.appendChild(opt);
+  });
+
+  notificationBox.appendChild(typeSelect);
+
+  const titleLabel=document.createElement("label");
+  titleLabel.textContent="Notification Title";
+  notificationBox.appendChild(titleLabel);
+
+  const titleInput=document.createElement("input");
+  titleInput.type="text";
+  titleInput.maxLength=120;
+  titleInput.placeholder="Example: Payment Details Approved";
+  notificationBox.appendChild(titleInput);
+
+  const messageLabel=document.createElement("label");
+  messageLabel.textContent="Notification Message";
+  notificationBox.appendChild(messageLabel);
+
+  const notificationInput=document.createElement("textarea");
+  notificationInput.maxLength=2000;
+  notificationInput.placeholder="Write notification message (minimum 5 characters, maximum 2000)...";
+  notificationBox.appendChild(notificationInput);
+
+  const sendNotification=document.createElement("button");
+  sendNotification.className="notificationBtn";
+  sendNotification.textContent="Send Notification";
+  sendNotification.onclick=()=>sendPublisherNotification(
+   p.id,typeSelect,titleInput,notificationInput,sendNotification
+  );
+  notificationBox.appendChild(sendNotification);
+
+  const notificationErrorBox=document.createElement("div");
+  notificationErrorBox.className="notificationError";
+  notificationBox.appendChild(notificationErrorBox);
+
+  const notificationHistoryHeading=document.createElement("p");
+  notificationHistoryHeading.innerHTML="<strong>Notification History</strong>";
+  notificationBox.appendChild(notificationHistoryHeading);
+
+  if(notificationLoadError){
+   notificationErrorBox.textContent=
+    "Notification history could not be loaded: "+notificationLoadError.message;
+  }else{
+   const publisherNotifications=notificationMap.get(p.id)||[];
+
+   if(!publisherNotifications.length){
+    const noNotifications=document.createElement("p");
+    noNotifications.className="small";
+    noNotifications.textContent="No notifications sent to this publisher.";
+    notificationBox.appendChild(noNotifications);
+   }else{
+    publisherNotifications.forEach(n=>{
+     const item=document.createElement("div");
+     item.className="notificationItem";
+
+     const type=document.createElement("div");
+     type.className="notificationMeta";
+     type.textContent="Type: "+notificationTypeName(n.notification_type);
+
+     const date=document.createElement("div");
+     date.className="notificationMeta";
+     date.textContent="Date: "+
+      (n.created_at?new Date(n.created_at).toLocaleString():"Not available");
+
+     const status=document.createElement("div");
+     status.className="notificationMeta "+
+      (n.is_read?"notificationRead":"notificationUnread");
+     status.textContent=n.is_read?"Read by publisher":"Not read yet";
+
+     const title=document.createElement("strong");
+     title.textContent=n.title;
+
+     const msg=document.createElement("p");
+     msg.textContent=n.message;
+
+     item.append(type,date,status,title,msg);
+     notificationBox.appendChild(item);
+    });
+   }
+  }
+
+  box.appendChild(notificationBox);
   list.appendChild(box);
  });
 
@@ -450,8 +587,74 @@ async function loadPublishers(){
   "Publisher list loaded. "+
   (paymentError?"Bank details could not be loaded. ":"Bank details loaded. ")+
   (warningLoadError
-   ?"Warning history could not be loaded: "+warningLoadError.message
-   :"Warning history loaded.");
+   ?"Warning history could not be loaded. "
+   :"Warning history loaded. ")+
+  (notificationLoadError
+   ?"Notification history could not be loaded: "+notificationLoadError.message
+   :"Notification history loaded.");
+}
+
+function notificationTypeName(type){
+ const names={
+  warning:"Warning",
+  account:"Account Update",
+  payment:"Payment Update",
+  announcement:"General Announcement"
+ };
+ return names[type]||"Notification";
+}
+
+async function sendPublisherNotification(publisherId,typeSelect,titleInput,messageInput,button){
+ if(!adminVerified||!adminUserId) return;
+
+ const type=typeSelect.value;
+ const title=titleInput.value.trim();
+ const message=messageInput.value.trim();
+
+ if(!title){
+  alert("Please enter a notification title.");
+  return;
+ }
+
+ if(title.length>120){
+  alert("Title cannot exceed 120 characters.");
+  return;
+ }
+
+ if(message.length<5){
+  alert("Notification message must contain at least 5 characters.");
+  return;
+ }
+
+ if(message.length>2000){
+  alert("Notification message cannot exceed 2000 characters.");
+  return;
+ }
+
+ if(!confirm("Send this "+notificationTypeName(type)+" to this publisher?")){
+  return;
+ }
+
+ button.disabled=true;
+ button.textContent="Sending...";
+
+ const {error}=await db.from("publisher_notifications").insert({
+  publisher_id:publisherId,
+  admin_id:adminUserId,
+  notification_type:type,
+  title:title,
+  message:message
+ });
+
+ if(error){
+  alert("Notification could not be sent: "+error.message);
+  button.disabled=false;
+  button.textContent="Send Notification";
+  return;
+ }
+
+ alert("Notification successfully sent to this publisher.");
+ await loadPublishers();
 }
 
 async function sendPublisherWarning(publisherId,input,button){
