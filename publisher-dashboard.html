@@ -6,92 +6,36 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BZlikely Publisher Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 *{box-sizing:border-box}
-body{
- margin:0;background:#f3f6fb;font-family:Arial,sans-serif;
- color:#172033;visibility:hidden
-}
+body{margin:0;background:#f3f6fb;font-family:Arial,sans-serif;color:#172033;visibility:hidden}
 header{background:#142b52;color:white;padding:22px}
 header h2{margin:0 0 8px}
 header p{margin:0;color:#d5e0f2}
 main{padding:20px;max-width:650px;margin:auto}
-.card{
- background:white;padding:20px;border-radius:14px;
- margin-bottom:15px;box-shadow:0 2px 10px #0000000b
-}
+.card{background:white;padding:20px;border-radius:14px;margin-bottom:15px;box-shadow:0 2px 10px #0000000b}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:13px}
-.stat{
- background:white;padding:18px 12px;border-radius:13px;
- box-shadow:0 2px 10px #0000000b
-}
+.stat{background:white;padding:18px 12px;border-radius:13px;box-shadow:0 2px 10px #0000000b}
 .stat p{margin:0 0 12px;color:#687386;font-size:14px}
 .stat h2{margin:0;color:#1769df;font-size:27px}
-.link-stat{
- display:block;text-decoration:none;color:inherit;
- border:2px solid transparent
-}
+.link-stat{display:block;text-decoration:none;color:inherit;border:2px solid transparent}
 .link-stat:active{border-color:#1769df}
 .small{font-size:13px;color:#687386}
-button{
- border:0;background:#1769df;color:white;padding:13px 17px;
- border-radius:9px;font-size:15px;cursor:pointer;margin:5px 5px 5px 0
-}
-button:disabled{opacity:.6;cursor:not-allowed}
+button{border:0;background:#1769df;color:white;padding:13px 17px;border-radius:9px;font-size:15px;cursor:pointer;margin:5px 5px 5px 0}
+button:disabled{opacity:.6}
 .secondary{background:#142b52}
-#error{color:#c62828;font-size:14px}
-#accessError{
- display:none;max-width:600px;margin:30px auto;padding:22px;
- background:white;border-radius:14px;color:#a00000;
- line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere
-}
-.warning-item{
- border:1px solid #e0e6ef;
- border-radius:10px;
- padding:15px;
- margin-top:12px;
- background:#fff
-}
-.warning-item.unread{
- border-left:4px solid #e49a16;
- background:#fffaf0
-}
-.warning-message{
- white-space:pre-wrap;
- overflow-wrap:anywhere;
- line-height:1.5;
- margin:12px 0
-}
-.warning-status{
- display:inline-block;
- font-size:11px;
- font-weight:bold;
- padding:5px 9px;
- border-radius:20px;
- background:#fff0cf;
- color:#8a5700
-}
-.warning-status.read{
- background:#e4f5e9;
- color:#21733a
-}
-.warning-date{
- color:#687386;
- font-size:12px
-}
-.warning-error{
- color:#c62828;
- font-size:13px
-}
-#warningCount{
- color:#1769df;
- font-size:14px;
- font-weight:bold
-}
+#error{color:#c62828;font-size:14px;overflow-wrap:anywhere}
+#accessError{display:none;max-width:600px;margin:30px auto;padding:22px;background:white;border-radius:14px;color:#a00000;line-height:1.6;overflow-wrap:anywhere}
+.warning-item{border:1px solid #e0e6ef;border-radius:10px;padding:15px;margin-top:12px;background:white}
+.warning-item.unread{border-left:4px solid #e49a16;background:#fffaf0}
+.warning-message{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5;margin:12px 0}
+.warning-status{display:inline-block;font-size:11px;font-weight:bold;padding:5px 9px;border-radius:20px;background:#fff0cf;color:#8a5700}
+.warning-status.read{background:#e4f5e9;color:#21733a}
+.warning-date{color:#687386;font-size:12px}
+.warning-error{color:#c62828;font-size:13px;overflow-wrap:anywhere}
+#warningCount{color:#1769df;font-size:14px;font-weight:bold}
 </style>
 </head>
-
 <body>
 
 <header>
@@ -137,13 +81,9 @@ button:disabled{opacity:.6;cursor:not-allowed}
   </div>
  </div>
 
- <!-- Publisher Warning System -->
  <div class="card" style="margin-top:16px">
   <h3>Official Warnings</h3>
-  <p class="small">
-   Important messages and warnings from BZlikely administration.
-  </p>
-
+  <p class="small">Important messages and warnings from BZlikely administration.</p>
   <p id="warningCount">Loading warnings...</p>
   <div id="warningsList"></div>
   <p id="warningError" class="warning-error"></p>
@@ -154,15 +94,8 @@ button:disabled{opacity:.6;cursor:not-allowed}
   <p id="name">Name: Loading...</p>
   <p id="email">Email: Loading...</p>
   <p id="error"></p>
-
-  <p class="small">
-   Clicks, sales and earnings will be connected after tracking is implemented.
-  </p>
-
-  <button onclick="location.href='publisher-home.html'">
-   Back to Publisher Home
-  </button>
-
+  <p class="small">Clicks, sales and earnings will be connected after tracking is implemented.</p>
+  <button onclick="location.href='publisher-home.html'">Back to Publisher Home</button>
   <button class="secondary" onclick="logout()">Logout</button>
  </div>
 
@@ -172,16 +105,9 @@ button:disabled{opacity:.6;cursor:not-allowed}
 const SUPABASE_URL = "https://acnpjyluvhvckrncqkyz.supabase.co";
 const SUPABASE_KEY = "sb_publishable_dXscx_nGVSXi8lm6qgra_Q_VaGIXaZ";
 
-const db = window.supabase.createClient(
- SUPABASE_URL,
- SUPABASE_KEY
-);
+const db = window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-let accountVerified = false;
-
-function restrictAccess(message){
- accountVerified = false;
-
+function showRestricted(message){
  document.getElementById("dashboardContent").style.display="none";
  document.getElementById("accessMessage").textContent=message;
  document.getElementById("accessError").style.display="block";
@@ -190,24 +116,20 @@ function restrictAccess(message){
 }
 
 function formatDate(value){
- const date = new Date(value);
-
- if(isNaN(date.getTime())) return "Date unavailable";
-
- return date.toLocaleString();
+ const date=new Date(value);
+ return isNaN(date.getTime())?"Date unavailable":date.toLocaleString();
 }
 
 async function loadWarnings(userId){
-
- const list = document.getElementById("warningsList");
- const count = document.getElementById("warningCount");
- const errorBox = document.getElementById("warningError");
+ const list=document.getElementById("warningsList");
+ const count=document.getElementById("warningCount");
+ const errorBox=document.getElementById("warningError");
 
  list.replaceChildren();
  errorBox.textContent="";
  count.textContent="Loading warnings...";
 
- const {data,error} = await db
+ const {data,error}=await db
   .from("publisher_warnings")
   .select("id,warning_message,created_at,is_read")
   .eq("publisher_id",userId)
@@ -215,11 +137,11 @@ async function loadWarnings(userId){
 
  if(error){
   count.textContent="Warnings unavailable";
-  errorBox.textContent="Could not load warnings: "+error.message;
+  errorBox.textContent="Warning database error: "+error.message;
   return;
  }
 
- if(!data || data.length===0){
+ if(!data||data.length===0){
   count.textContent="0 warnings";
   const empty=document.createElement("p");
   empty.className="small";
@@ -228,29 +150,16 @@ async function loadWarnings(userId){
   return;
  }
 
- const unreadCount=data.filter(item=>item.is_read===false).length;
-
- count.textContent=
-  data.length+" total warning(s) | "+unreadCount+" unread";
+ const unread=data.filter(item=>item.is_read===false).length;
+ count.textContent=data.length+" total warning(s) | "+unread+" unread";
 
  data.forEach(item=>{
-
   const card=document.createElement("div");
-  card.className="warning-item";
-
-  if(item.is_read===false){
-   card.classList.add("unread");
-  }
+  card.className="warning-item"+(item.is_read?"":" unread");
 
   const status=document.createElement("span");
-  status.className="warning-status";
-
-  if(item.is_read){
-   status.classList.add("read");
-   status.textContent="READ";
-  }else{
-   status.textContent="UNREAD";
-  }
+  status.className="warning-status"+(item.is_read?" read":"");
+  status.textContent=item.is_read?"READ":"UNREAD";
 
   const date=document.createElement("p");
   date.className="warning-date";
@@ -260,17 +169,13 @@ async function loadWarnings(userId){
   message.className="warning-message";
   message.textContent=item.warning_message;
 
-  card.appendChild(status);
-  card.appendChild(date);
-  card.appendChild(message);
+  card.append(status,date,message);
 
-  if(item.is_read===false){
-
+  if(!item.is_read){
    const button=document.createElement("button");
    button.textContent="Mark as Read";
 
-   button.addEventListener("click",async()=>{
-
+   button.onclick=async()=>{
     button.disabled=true;
     button.textContent="Updating...";
 
@@ -286,21 +191,19 @@ async function loadWarnings(userId){
     if(updateError){
      button.disabled=false;
      button.textContent="Mark as Read";
-     errorBox.textContent=
-      "Could not update warning: "+updateError.message;
+     errorBox.textContent="Could not update warning: "+updateError.message;
      return;
     }
 
     if(!updateData){
      button.disabled=false;
      button.textContent="Mark as Read";
-     errorBox.textContent=
-      "Warning could not be updated. Please refresh and try again.";
+     errorBox.textContent="Warning was not updated. Refresh and try again.";
      return;
     }
 
     await loadWarnings(userId);
-   });
+   };
 
    card.appendChild(button);
   }
@@ -310,13 +213,11 @@ async function loadWarnings(userId){
 }
 
 async function start(){
-
  try{
-
   const {data,error}=await db.auth.getSession();
 
   if(error){
-   location.replace("publisher-login.html");
+   showRestricted("Login session error: "+error.message);
    return;
   }
 
@@ -333,49 +234,47 @@ async function start(){
    .eq("id",user.id)
    .maybeSingle();
 
-  if(profileError||!profile){
-   restrictAccess(
-    "Unable to verify your publisher account. Please contact BZlikely administration."
+  if(profileError){
+   showRestricted(
+    "Publisher profile database error: "+
+    profileError.message+
+    "\n\nError code: "+(profileError.code||"Not provided")
+   );
+   return;
+  }
+
+  if(!profile){
+   showRestricted(
+    "No publisher profile was found for this login.\n\n"+
+    "Your Supabase login is active, but the matching record is missing from the publishers table.\n"+
+    "Please contact BZlikely administration."
    );
    return;
   }
 
   if(profile.is_active!==true){
-   restrictAccess(
-    "Your publisher account has been deactivated by BZlikely administration."
-   );
+   showRestricted("Your publisher account has been deactivated by BZlikely administration.");
    return;
   }
 
   const status=(profile.status||"pending").toLowerCase();
 
   if(status!=="approved"){
-
    if(status==="pending"){
-    restrictAccess("Your account is waiting for admin approval.");
+    showRestricted("Your account is waiting for admin approval.");
    }else if(status==="rejected"){
-    restrictAccess("Your publisher application has been rejected.");
+    showRestricted("Your publisher application has been rejected.");
    }else{
-    restrictAccess(
-     "Your account is not approved. Current status: "+status
-    );
+    showRestricted("Your account is not approved. Current status: "+status);
    }
-
    return;
   }
 
-  accountVerified=true;
-
   const name=profile.full_name||user.email||"Publisher";
 
-  document.getElementById("email").textContent=
-   "Email: "+(user.email||"Not available");
-
-  document.getElementById("welcome").textContent=
-   "Welcome, "+name;
-
-  document.getElementById("name").textContent=
-   "Name: "+name;
+  document.getElementById("email").textContent="Email: "+(user.email||"Not available");
+  document.getElementById("welcome").textContent="Welcome, "+name;
+  document.getElementById("name").textContent="Name: "+name;
 
   const {count,error:linkError}=await db
    .from("publisher_links")
@@ -383,37 +282,26 @@ async function start(){
    .eq("publisher_id",user.id);
 
   if(linkError){
-
    document.getElementById("totalLinks").textContent="Unavailable";
-
-   document.getElementById("error").textContent=
-    "Could not load links: "+linkError.message;
-
+   document.getElementById("error").textContent="Could not load links: "+linkError.message;
   }else{
-
    document.getElementById("totalLinks").textContent=count??0;
   }
 
   await loadWarnings(user.id);
-
   document.body.style.visibility="visible";
 
  }catch(error){
-
-  restrictAccess(
-   "A verification error occurred. Please try again or contact bzlikelybusiness@gmail.com."
-  );
+  showRestricted("Unexpected dashboard error: "+(error.message||String(error)));
  }
 }
 
 async function logout(){
-
  await db.auth.signOut();
  location.replace("publisher-login.html");
 }
 
 start();
 </script>
-
 </body>
 </html>
