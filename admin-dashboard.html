@@ -26,6 +26,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .warningBtn{background:#8b45b5}
 .notificationBtn{background:#1769df}
 .deleteNotification{background:#d93636}
+.testEmailBtn{background:#087e8b}
 .stats{display:flex;gap:12px;flex-wrap:wrap}
 .stat{flex:1;min-width:110px}
 .stat h2{font-size:27px;margin:8px 0}
@@ -56,6 +57,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .notificationUnread{color:#a04a00;font-weight:bold}
 .notificationRead{color:#16834b;font-weight:bold}
 .notificationError{color:#b00020;font-size:13px;margin-top:8px;white-space:pre-wrap}
+#emailTestMessage{margin-top:10px;white-space:pre-wrap;overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -79,6 +81,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </div>
 
 <div id="dashboard" class="hidden">
+
+<div class="card">
+<h3>Email System Test</h3>
+<p class="small">Send a test email to the BZlikely company email address to verify the email connection.</p>
+<button class="testEmailBtn" id="testEmailButton" onclick="testEmailSystem()">Send Test Email</button>
+<div id="emailTestMessage"></div>
+</div>
+
 <div class="card stats">
 <div class="stat">
 <p class="small">Total Publishers</p>
@@ -203,6 +213,63 @@ async function start(){
    await db.auth.signOut();
    showError("Admin Access Denied",err.message);
   }
+ }
+}
+
+// TEST EMAIL FUNCTION
+
+async function testEmailSystem(){
+ if(!adminVerified||!adminUserId){
+  alert("Admin verification required. Please login again.");
+  return;
+ }
+
+ const button=document.getElementById("testEmailButton");
+ const message=document.getElementById("emailTestMessage");
+
+ if(!confirm("Send a test email to bzlikelybusiness@gmail.com?")){
+  return;
+ }
+
+ button.disabled=true;
+ button.textContent="Sending Test Email...";
+ message.textContent="Connecting to BZlikely email service...";
+
+ try{
+  const {data,error}=await db.functions.invoke(
+   "test-bzlikely-email",
+   {
+    body:{}
+   }
+  );
+
+  if(error){
+   console.error("Test email function error:",error);
+   throw new Error(error.message||"Email function request failed.");
+  }
+
+  if(!data||data.success!==true){
+   throw new Error(
+    data&&data.error
+     ?data.error
+     :"The email service did not confirm success."
+   );
+  }
+
+  message.textContent=
+   "SUCCESS: "+data.message+
+   "\nCheck the inbox of bzlikelybusiness@gmail.com.";
+
+  alert("Test email request accepted. Please check the company Gmail inbox.");
+
+ }catch(error){
+  console.error("Email test failed:",error);
+  message.textContent="EMAIL TEST FAILED: "+
+   (error.message||"Unknown error. Please try again.");
+
+ }finally{
+  button.disabled=false;
+  button.textContent="Send Test Email";
  }
 }
 
@@ -399,7 +466,7 @@ async function loadPublishers(){
 
   box.appendChild(publisherControls);
 
-  // OLD WARNING SYSTEM - PRESERVED
+  // WARNING SYSTEM
 
   const warningBox=document.createElement("div");
   warningBox.className="warningControls";
@@ -469,7 +536,7 @@ async function loadPublishers(){
 
   box.appendChild(warningBox);
 
-  // NEW GENERAL NOTIFICATION SYSTEM
+  // PUBLISHER NOTIFICATIONS
 
   const notificationBox=document.createElement("div");
   notificationBox.className="notificationControls";
@@ -588,7 +655,6 @@ async function loadPublishers(){
   }
 
   box.appendChild(notificationBox);
-  list.appendChild(box);
  });
 
  message.textContent=
